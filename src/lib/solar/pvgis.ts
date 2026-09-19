@@ -14,12 +14,16 @@
  *   estado estructural. Eso lo aporta la visita tecnica o la Solar API.
  */
 
+import { memoizeAsync, withTimeout } from "../cache";
 import type { ArrayGeometry, Location } from "./types";
 
 const DEFAULT_BASE_URL = "https://re.jrc.ec.europa.eu/api/v5_2";
 
 /** Perdidas del sistema en %. Cableado, inversor, suciedad, temperatura. */
 export const DEFAULT_SYSTEM_LOSS_PERCENT = 14;
+
+/** PVGIS es un servicio publico sin compromiso de disponibilidad. */
+const DEFAULT_TIMEOUT_MS = 9000;
 
 export interface PvgisProduction {
   /** kWh/ano por cada kWp instalado. El dato que hace de bisagra. */
@@ -65,6 +69,7 @@ export async function fetchProduction(
     baseUrl?: string;
     lossPercent?: number;
     signal?: AbortSignal;
+    timeoutMs?: number;
     fetchImpl?: typeof fetch;
   } = {},
 ): Promise<PvgisProduction> {
@@ -92,9 +97,17 @@ export async function fetchProduction(
 
   let response: Response;
   try {
-    response = await doFetch(url, { signal: options.signal });
+    response = await doFetch(url, {
+      signal: withTimeout(options.timeoutMs ?? DEFAULT_TIMEOUT_MS, options.signal),
+    });
   } catch (cause) {
-    throw new PvgisError("No se ha podido contactar con PVGIS", cause);
+    const agotado = cause instanceof Error && cause.name === "TimeoutError";
+    throw new PvgisError(
+      agotado
+        ? "PVGIS ha tardado mas de lo aceptable en responder"
+        : "No se ha podido contactar con PVGIS",
+      cause,
+    );
   }
 
   if (!response.ok) {
@@ -188,3 +201,21 @@ export function parseProduction(payload: unknown): PvgisProduction {
     retrievedAt: new Date().toISOString(),
   };
 }
+
+/**
+ * Version cacheada de `fetchProduction`.
+ *
+ * La clave redondea las coordenadas a cuatro decimales, unos once metros: dos
+ * tejados dentro de ese radio reciben la misma radiacion, de modo que
+ * compartir la respuesta es correcto y no una aproximacion perezosa.
+ */
+export const fetchProductionCached = memoizeAsync(
+  fetchProduction,
+  (location, geometry) =>
+    [
+      location.latitude.toFixed(4),
+      location.longitude.toFixed(4),
+      geometry.useOptimalAngles ? "opt" : `${geometry.tiltDeg}/${geometry.azimuthDeg}`,
+    ].join("|"),
+  { ttlMs: 24 * 60 * 60 * 1000 },
+);

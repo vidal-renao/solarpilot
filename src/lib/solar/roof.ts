@@ -18,10 +18,17 @@
  * vez con clave real y confirmar la forma de la respuesta.
  */
 
+import { STUDY_DEFAULTS } from "./assumptions";
 import type { Confidence, Location, Provenance } from "./types";
 
 export interface RoofInsight {
-  /** Superficie utilizable para modulos, en m2. */
+  /**
+   * Superficie **neta** utilizable para modulos, en m2.
+   *
+   * Siempre neta, venga de donde venga. Google Solar ya la devuelve neta;
+   * lo que declara un usuario es bruto y se convierte en `declaredRoof`.
+   * El motor confia en esa invariante y no vuelve a descontar nada.
+   */
   usableAreaM2?: number;
   /** Inclinacion dominante de la cubierta, en grados. */
   tiltDeg?: number;
@@ -171,13 +178,23 @@ export function normaliseAzimuth(degrees: number): number {
   return value;
 }
 
-/** Superficie declarada por el propio usuario. Fuente debil pero utilizable. */
-export function declaredRoof(areaM2: number): RoofInsight {
+/**
+ * Superficie declarada por el propio usuario. Fuente debil pero utilizable.
+ *
+ * Lo que mide una persona es la superficie **bruta** del tejado. Aqui se
+ * descuenta la fraccion no aprovechable —chimeneas, retranqueos, pasillos de
+ * mantenimiento, faldones mal orientados— para devolver superficie neta, que
+ * es lo unico que el motor sabe interpretar.
+ */
+export function declaredRoof(
+  grossAreaM2: number,
+  usableFraction: number = STUDY_DEFAULTS.usableRoofFraction,
+): RoofInsight {
   return {
-    usableAreaM2: areaM2,
+    usableAreaM2: grossAreaM2 * usableFraction,
     provenance: {
       source: "supuesto",
-      detail: "Superficie de cubierta declarada por el usuario, sin verificar.",
+      detail: `Superficie declarada por el usuario: ${grossAreaM2} m² brutos, de los que se consideran aprovechables el ${Math.round(usableFraction * 100)} %.`,
     },
     confidence: "baja",
     caveats: [
@@ -215,22 +232,39 @@ export async function resolveRoof(
     declaredAreaM2?: number;
     sources?: RoofDataSource[];
     signal?: AbortSignal;
+    /** Gancho de observabilidad: una fuente caida deberia poder registrarse. */
+    onSourceError?: (sourceId: string, error: unknown) => void;
   } = {},
 ): Promise<RoofInsight> {
   const sources = options.sources ?? [googleSolarSource];
+  const caidas: string[] = [];
 
   for (const source of sources) {
     if (!source.isConfigured()) continue;
     try {
       const insight = await source.fetch(location, options.signal);
       if (insight) return insight;
-    } catch {
+    } catch (error) {
       // Una fuente caida degrada la calidad del preestudio, no lo impide.
+      // Pero no se traga en silencio: queda anotado en el resultado, porque
+      // si no, un preestudio degradado es indistinguible de uno normal.
+      caidas.push(source.label);
+      options.onSourceError?.(source.id, error);
       continue;
     }
   }
 
-  return options.declaredAreaM2 !== undefined
-    ? declaredRoof(options.declaredAreaM2)
-    : unknownRoof();
+  const fallback =
+    options.declaredAreaM2 !== undefined
+      ? declaredRoof(options.declaredAreaM2)
+      : unknownRoof();
+
+  if (caidas.length > 0) {
+    fallback.caveats = [
+      `No se ha podido consultar ${caidas.join(", ")}. El dimensionado se ha hecho sin datos medidos de la cubierta.`,
+      ...fallback.caveats,
+    ];
+  }
+
+  return fallback;
 }

@@ -8,4 +8,8 @@ build/
 next-env.d.ts
 .DS_Store
 .tmp/
-scripts/
+
+solarpilot.db
+solarpilot.db-*
+.tmp-*.db
+.tmp-*.db-*

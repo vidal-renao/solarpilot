@@ -4,6 +4,8 @@ import { useActionState, useState } from "react";
 
 import { createStudy } from "@/app/actions";
 
+import { LeadCapture } from "./LeadCapture";
+
 import { StudyResult } from "./StudyResult";
 
 const inputBase =
@@ -189,6 +191,17 @@ export function StudyForm() {
             study={state.study}
             roof={state.roof}
             addressPrecise={state.addressPrecise}
+          />
+          <LeadCapture
+            studyFields={{
+              address: values.address,
+              annualKWh: values.annualKWh,
+              importPrice: values.importPrice,
+              exportPrice: values.exportPrice,
+              roofAreaM2: values.roofAreaM2,
+              consumptionSource: values.consumptionSource,
+              ...(values.withBattery ? { withBattery: "on" } : {}),
+            }}
           />
         </div>
       )}

@@ -92,10 +92,12 @@ export function sizeSystem(
 
   const areaPerKWp = (1000 / defaults.panelWattsPeak) * defaults.areaPerPanelM2;
 
+  // La superficie llega ya neta. La fraccion util se aplica en la capa de
+  // cubierta, donde se sabe si el dato es bruto o medido.
   const kWpFromArea =
-    input.availableRoofAreaM2 === undefined
+    input.usableRoofAreaM2 === undefined
       ? Number.POSITIVE_INFINITY
-      : (input.availableRoofAreaM2 * defaults.usableRoofFraction) / areaPerKWp;
+      : input.usableRoofAreaM2 / areaPerKWp;
 
   const kWpFromCap = input.maxKWp ?? Number.POSITIVE_INFINITY;
 
@@ -286,10 +288,11 @@ export function buildStudy(
         "Se adopta cero a proposito. Cualquier escalada positiva acorta el plazo de recuperacion, de modo que el resultado es un suelo, no una expectativa.",
     },
     {
-      id: "superficie_util",
-      description: "Fraccion util de cubierta",
-      value: round(defaults.usableRoofFraction * 100, 0) + " %",
-      impact: "Solo limita si la cubierta es el factor restrictivo del dimensionado.",
+      id: "horizonte_analisis",
+      description: "Horizonte de vida util considerado",
+      value: defaults.analysisYears + " años",
+      impact:
+        "El ahorro acumulado se corta ahi. Los modulos suelen seguir produciendo despues, con menor rendimiento.",
     },
   ];
 
@@ -309,7 +312,7 @@ export function buildStudy(
       "Curva de carga horaria del punto de suministro. Es el dato que mas eleva la fiabilidad del reparto entre autoconsumo y excedente.",
     );
   }
-  if (input.availableRoofAreaM2 === undefined) {
+  if (input.usableRoofAreaM2 === undefined) {
     missingData.push("Superficie util de cubierta disponible.");
   }
   if (!geometryKnown) {

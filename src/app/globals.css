@@ -90,3 +90,46 @@
     animation: none;
   }
 }
+
+/*
+ * Superficie "papel".
+ *
+ * Una propuesta es un documento, no una pantalla: se lee en claro y a veces
+ * se imprime. Como los tokens son variables CSS, basta redefinirlas en un
+ * envoltorio para que los mismos componentes se rendericen sobre papel sin
+ * duplicar una sola clase.
+ */
+.paper {
+  --color-ink: #ffffff;
+  --color-ink-raised: #ffffff;
+  --color-ink-sunken: #f4f6fb;
+  --color-line: #d9dfec;
+  --color-line-bright: #b9c2d6;
+  --color-snow: #131a2b;
+  --color-mist: #45506b;
+  --color-mist-dim: #6e7997;
+  --color-sun: #b57310;
+  --color-sun-dim: #e0b978;
+
+  background-color: var(--color-ink);
+  color: var(--color-snow);
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .paper {
+    --color-ink-sunken: #ffffff;
+  }
+
+  /* Que no se parta un bloque de datos entre dos hojas. */
+  .paper section {
+    break-inside: avoid;
+  }
+
+  @page {
+    margin: 16mm;
+  }
+}

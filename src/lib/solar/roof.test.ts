@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { STUDY_DEFAULTS } from "./assumptions";
+
 import {
   declaredRoof,
   normaliseAzimuth,
@@ -112,7 +114,8 @@ describe("resolveRoof: cadena de respaldo", () => {
       sources: [source("apagada", false, insight(50))],
       declaredAreaM2: 20,
     });
-    expect(roof.usableAreaM2).toBe(20);
+    // 20 m2 brutos declarados se convierten en netos al caer a `declaredRoof`.
+    expect(roof.usableAreaM2).toBeCloseTo(20 * STUDY_DEFAULTS.usableRoofFraction);
     expect(roof.provenance.source).toBe("supuesto");
   });
 
@@ -121,7 +124,7 @@ describe("resolveRoof: cadena de respaldo", () => {
       sources: [source("rota", true, new Error("502"))],
       declaredAreaM2: 20,
     });
-    expect(roof.usableAreaM2).toBe(20);
+    expect(roof.usableAreaM2).toBeCloseTo(20 * STUDY_DEFAULTS.usableRoofFraction);
   });
 
   it("sin cobertura en el punto, pasa a la siguiente fuente", async () => {
@@ -145,7 +148,51 @@ describe("fuentes declarativas", () => {
     expect(unknownRoof().confidence).toBe("baja");
   });
 
+  it("convierte la superficie bruta declarada en superficie neta", () => {
+    // El usuario mide el tejado entero; solo una parte admite modulos.
+    expect(declaredRoof(100, 0.7).usableAreaM2).toBeCloseTo(70);
+    expect(declaredRoof(100, 1).usableAreaM2).toBeCloseTo(100);
+  });
+
+  it("deja por escrito cuanto ha descontado", () => {
+    expect(declaredRoof(100, 0.7).provenance.detail).toContain("70 %");
+  });
+
+  it("Google Solar entrega superficie ya neta y no se vuelve a descontar", () => {
+    const parsed = parseGoogleSolar({
+      solarPotential: { maxArrayAreaMeters2: 61.4, maxArrayPanelsCount: 34 },
+    });
+    expect(parsed?.usableAreaM2).toBeCloseTo(61.4);
+  });
+
   it("advierte de que la geometria real se desconoce", () => {
     expect(declaredRoof(40).caveats.join(" ")).toMatch(/orientacion e inclinacion/i);
+  });
+});
+
+describe("observabilidad de las fuentes", () => {
+  it("deja constancia en el resultado de que una fuente fallo", async () => {
+    const roof = await resolveRoof(MADRID, {
+      sources: [source("Google Solar API", true, new Error("502"))],
+      declaredAreaM2: 30,
+    });
+    expect(roof.caveats[0]).toMatch(/no se ha podido consultar/i);
+    expect(roof.caveats[0]).toContain("Google Solar API");
+  });
+
+  it("avisa por el gancho de observabilidad con el error original", async () => {
+    const vistos: Array<{ id: string; error: unknown }> = [];
+    await resolveRoof(MADRID, {
+      sources: [source("caida", true, new Error("502"))],
+      onSourceError: (id, error) => vistos.push({ id, error }),
+    });
+    expect(vistos).toHaveLength(1);
+    expect(vistos[0]?.id).toBe("caida");
+    expect((vistos[0]?.error as Error).message).toBe("502");
+  });
+
+  it("no ensucia el resultado cuando ninguna fuente falla", async () => {
+    const roof = await resolveRoof(MADRID, { sources: [], declaredAreaM2: 30 });
+    expect(roof.caveats.join(" ")).not.toMatch(/no se ha podido consultar/i);
   });
 });

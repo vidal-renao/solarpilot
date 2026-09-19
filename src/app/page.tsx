@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { StudyForm } from "@/components/StudyForm";
 
 export default function Home() {
@@ -7,9 +9,17 @@ export default function Home() {
         <span className="font-display text-sm font-medium tracking-tight">
           Solar<span className="text-sun">Pilot</span>
         </span>
-        <span className="rounded-full border border-line px-3 py-1 text-[11px] text-mist-dim">
-          Proyecto de demostracion
-        </span>
+        <nav className="flex items-center gap-4">
+          <Link
+            href="/pipeline"
+            className="text-xs text-mist-dim transition-colors hover:text-snow"
+          >
+            Pipeline
+          </Link>
+          <span className="rounded-full border border-line px-3 py-1 text-[11px] text-mist-dim">
+            Proyecto de demostracion
+          </span>
+        </nav>
       </header>
 
       <main className="mx-auto max-w-5xl px-5 pb-24 sm:px-8">

@@ -90,10 +90,29 @@ describe("sizeSystem", () => {
   });
 
   it("limita por superficie cuando la cubierta es pequena", () => {
-    const sizing = sizeSystem(baseInput({ availableRoofAreaM2: 8 }), MADRID);
+    // La superficie entra ya neta: el descuento de la fraccion util es
+    // responsabilidad de la capa de cubierta, no del motor.
+    const sizing = sizeSystem(baseInput({ usableRoofAreaM2: 8 }), MADRID);
     expect(sizing.limitingFactor).toBe("superficie");
-    // 8 m2 * 0,7 util / 4,667 m2 por kWp = 1,2 kWp -> 3 modulos
-    expect(sizing.panelCount).toBe(3);
+    // 8 m2 netos / 4,667 m2 por kWp = 1,71 kWp -> 4 modulos
+    expect(sizing.panelCount).toBe(4);
+  });
+
+  it("no vuelve a descontar la fraccion util sobre una superficie ya neta", () => {
+    // Blindaje contra la regresion que motivo separar bruto de neto: si el
+    // motor aplicase otra vez el 0,7, cabrian menos modulos de los que caben.
+    // La superficie ha de ser pequena para que la cubierta sea lo que limita;
+    // con una cubierta holgada manda el consumo y la prueba no mediria nada.
+    const areaPerKWp = (1000 / STUDY_DEFAULTS.panelWattsPeak) * STUDY_DEFAULTS.areaPerPanelM2;
+    const neta = 8;
+    const sizing = sizeSystem(baseInput({ usableRoofAreaM2: neta }), MADRID);
+    expect(sizing.limitingFactor).toBe("superficie");
+
+    const conDobleDescuento = Math.round(
+      (((neta * STUDY_DEFAULTS.usableRoofFraction) / areaPerKWp) * 1000) /
+        STUDY_DEFAULTS.panelWattsPeak,
+    );
+    expect(sizing.panelCount).toBeGreaterThan(conDobleDescuento);
   });
 
   it("limita por el tope de potencia que imponga el cliente", () => {
@@ -218,7 +237,7 @@ describe("buildStudy: trazabilidad y confianza", () => {
 
   it("deja de pedir la superficie cuando se le ha dado", () => {
     const sin = buildStudy(baseInput(), MADRID);
-    const con = buildStudy(baseInput({ availableRoofAreaM2: 40 }), MADRID);
+    const con = buildStudy(baseInput({ usableRoofAreaM2: 40 }), MADRID);
     expect(con.missingData.length).toBeLessThan(sin.missingData.length);
   });
 

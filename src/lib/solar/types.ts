@@ -89,8 +89,15 @@ export interface StudyInput {
   consumption: ConsumptionInput;
   tariff: TariffInput;
   geometry?: Partial<ArrayGeometry>;
-  /** Superficie de cubierta disponible en m2, si se conoce. */
-  availableRoofAreaM2?: number;
+  /**
+   * Superficie **neta** utilizable para modulos, en m2.
+   *
+   * Neta, no bruta: ya lleva descontados obstaculos, retranqueos y zonas mal
+   * orientadas. Quien conozca solo la superficie bruta del tejado debe pasar
+   * por `declaredRoof`, que aplica la fraccion util. Mezclar las dos
+   * semanticas en este campo infradimensiona la instalacion en silencio.
+   */
+  usableRoofAreaM2?: number;
   /** Tope de potencia impuesto por el cliente o por la instalacion. */
   maxKWp?: number;
   /** Incluir bateria en el dimensionado. */

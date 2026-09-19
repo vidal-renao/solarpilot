@@ -9,9 +9,13 @@
  * fichero.
  */
 
+import { memoizeAsync, withTimeout } from "../cache";
 import type { Location } from "./types";
 
 const DEFAULT_BASE_URL = "https://nominatim.openstreetmap.org";
+
+/** Nominatim es un servicio comunitario: ni rapido garantizado ni ilimitado. */
+const DEFAULT_TIMEOUT_MS = 7000;
 
 export class GeocodeError extends Error {
   constructor(
@@ -43,6 +47,7 @@ export async function geocodeAddress(
     userAgent?: string;
     countryCodes?: string;
     signal?: AbortSignal;
+    timeoutMs?: number;
     fetchImpl?: typeof fetch;
   } = {},
 ): Promise<GeocodeResult | null> {
@@ -65,11 +70,17 @@ export async function geocodeAddress(
   let response: Response;
   try {
     response = await doFetch(`${baseUrl}/search?${params.toString()}`, {
-      signal: options.signal,
+      signal: withTimeout(options.timeoutMs ?? DEFAULT_TIMEOUT_MS, options.signal),
       headers: { "User-Agent": userAgent, "Accept-Language": "es" },
     });
   } catch (cause) {
-    throw new GeocodeError("No se ha podido contactar con el geocodificador", cause);
+    const agotado = cause instanceof Error && cause.name === "TimeoutError";
+    throw new GeocodeError(
+      agotado
+        ? "El geocodificador ha tardado mas de lo aceptable en responder"
+        : "No se ha podido contactar con el geocodificador",
+      cause,
+    );
   }
 
   if (!response.ok) {
@@ -101,3 +112,16 @@ export async function geocodeAddress(
     isPreciseEnough: PRECISE_TYPES.has(precision) || category === "building",
   };
 }
+
+/**
+ * Version cacheada de `geocodeAddress`.
+ *
+ * Ademas de ahorrar llamadas, protege el limite de una peticion por segundo
+ * que impone la politica de uso de Nominatim: reintentar el mismo texto no
+ * cuenta como peticion nueva.
+ */
+export const geocodeAddressCached = memoizeAsync(
+  geocodeAddress,
+  (query) => query.trim().toLowerCase().replace(/\s+/g, " "),
+  { ttlMs: 24 * 60 * 60 * 1000 },
+);
