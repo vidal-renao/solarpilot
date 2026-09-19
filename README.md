@@ -4,6 +4,8 @@ Preestudio solar para una instaladora fotovoltaica española: una dirección y u
 
 Lo que lo separa de cualquier otro calculador solar es que **también dice cuánto se fía de sus propios números**. Cada cifra arrastra de dónde sale, y la confianza global es la del eslabón más débil: si la radiación viene de una fuente oficial pero el consumo lo has sacado de una factura, el preestudio sale marcado como confianza **baja**, no alta.
 
+**→ [Ver funcionando](https://solarpilot-psi.vercel.app)**
+
 > **Proyecto de demostración.** La empresa no existe y los precios son de un catálogo ficticio. Los datos de radiación sí son reales: los sirve PVGIS, el servicio del Joint Research Centre de la Comisión Europea.
 
 <!--
