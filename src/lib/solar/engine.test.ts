@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { STUDY_DEFAULTS } from "./assumptions";
 import {
   buildStudy,
+  computeAnnualSavings,
   computeEconomics,
   estimateEnergyBalance,
   interpolateSelfConsumption,
@@ -320,5 +321,112 @@ describe("parseProduction: parseo defensivo de PVGIS", () => {
     delete (sinGeometria as { inputs?: unknown }).inputs;
     const parsed = parseProduction(sinGeometria);
     expect(parsed.tiltDeg).toBe(0);
+  });
+});
+
+describe("computeAnnualSavings: tope de la compensacion simplificada", () => {
+  const balance = (selfConsumed: number, exported: number, gridImport: number) => ({
+    annualProductionKWh: selfConsumed + exported,
+    selfConsumedKWh: selfConsumed,
+    exportedKWh: exported,
+    gridImportKWh: gridImport,
+    selfConsumptionRatio: 0,
+    selfSufficiencyRatio: 0,
+    monthlyProductionKWh: [],
+  });
+
+  const tarifa = { importPricePerKWh: 0.22, exportPricePerKWh: 0.06 };
+
+  it("compensa sin recorte cuando queda factura de energia que descontar", () => {
+    // Excedente 1.000 x 0,06 = 60 EUR. Energia de red 2.000 x 0,22 = 440 EUR.
+    const r = computeAnnualSavings(balance(2000, 1000, 2000), tarifa);
+    expect(r.compensationEUR).toBeCloseTo(60);
+    expect(r.compensationCapped).toBe(false);
+    expect(r.uncompensatedExportKWh).toBe(0);
+  });
+
+  it("recorta la compensacion al termino de energia y nunca paga dinero", () => {
+    // Excedente 10.000 x 0,06 = 600 EUR, pero solo se compran 100 kWh de red:
+    // el tope son 22 EUR. El resto se vierte sin retribucion.
+    const r = computeAnnualSavings(balance(500, 10_000, 100), tarifa);
+    expect(r.compensationEUR).toBeCloseTo(22);
+    expect(r.compensationCapped).toBe(true);
+    expect(r.uncompensatedExportKWh).toBeGreaterThan(9000);
+  });
+
+  it("no compensa nada cuando no se compra energia a la red", () => {
+    const r = computeAnnualSavings(balance(4000, 5000, 0), tarifa);
+    expect(r.compensationEUR).toBe(0);
+    expect(r.compensationCapped).toBe(true);
+  });
+
+  it("el ahorro total es la suma de los dos conceptos", () => {
+    const r = computeAnnualSavings(balance(2000, 1000, 2000), tarifa);
+    expect(r.totalEUR).toBeCloseTo(r.selfConsumptionSavingsEUR + r.compensationEUR, 2);
+  });
+
+  it("sobredimensionar deja de mejorar el ahorro una vez alcanzado el tope", () => {
+    const moderado = computeAnnualSavings(balance(2000, 2000, 2000), tarifa);
+    const excesivo = computeAnnualSavings(balance(2000, 40_000, 2000), tarifa);
+    // Mismo autoconsumo, veinte veces mas excedente, y el ahorro no se dispara.
+    expect(excesivo.totalEUR).toBeLessThan(moderado.totalEUR * 2);
+    expect(excesivo.compensationCapped).toBe(true);
+  });
+});
+
+describe("computeEconomics: cuadro y sensibilidad", () => {
+  const input = baseInput();
+  const sizing = sizeSystem(input, MADRID);
+  const balance = estimateEnergyBalance(sizing, MADRID, input.consumption, false);
+  const eco = computeEconomics(sizing, balance, input.tariff, input.consumption, false);
+
+  it("proyecta un cuadro con una fila por ano del horizonte", () => {
+    expect(eco.schedule).toHaveLength(STUDY_DEFAULTS.analysisYears);
+    expect(eco.schedule[0]?.year).toBe(1);
+  });
+
+  it("el acumulado no decrece nunca", () => {
+    for (let i = 1; i < eco.schedule.length; i += 1) {
+      expect(eco.schedule[i]!.cumulativeEUR).toBeGreaterThanOrEqual(
+        eco.schedule[i - 1]!.cumulativeEUR,
+      );
+    }
+  });
+
+  it("la produccion del cuadro decrece por la degradacion de los modulos", () => {
+    const primero = eco.schedule[0]!.productionKWh;
+    const ultimo = eco.schedule[eco.schedule.length - 1]!.productionKWh;
+    expect(ultimo).toBeLessThan(primero);
+  });
+
+  it("marca el ano de recuperacion una sola vez", () => {
+    expect(eco.schedule.filter((f) => f.breakEven)).toHaveLength(1);
+  });
+
+  it("ofrece varios escenarios de precio y el mas alto amortiza antes", () => {
+    expect(eco.sensitivity.length).toBeGreaterThanOrEqual(3);
+    const congelado = eco.sensitivity[0]!;
+    const alcista = eco.sensitivity[eco.sensitivity.length - 1]!;
+    expect(alcista.annualEscalation).toBeGreaterThan(congelado.annualEscalation);
+    expect(alcista.paybackYears!).toBeLessThan(congelado.paybackYears!);
+    expect(alcista.lifetimeSavingsEUR).toBeGreaterThan(congelado.lifetimeSavingsEUR);
+  });
+
+  it("las ayudas aplicables reducen el desembolso y acortan el retorno", () => {
+    const sinAyudas = computeEconomics(sizing, balance, input.tariff, input.consumption, false);
+    const conAyudas = computeEconomics(
+      sizing, balance, input.tariff, input.consumption, false, STUDY_DEFAULTS, 1500,
+    );
+    expect(conAyudas.netInvestmentEUR).toBeCloseTo(sinAyudas.investmentEUR - 1500, 1);
+    expect(conAyudas.simplePaybackYears!).toBeLessThan(sinAyudas.simplePaybackYears!);
+    // La inversion bruta no se toca: es lo que cuesta la instalacion.
+    expect(conAyudas.investmentEUR).toBeCloseTo(sinAyudas.investmentEUR, 2);
+  });
+
+  it("una ayuda mayor que la inversion no genera desembolso negativo", () => {
+    const eco = computeEconomics(
+      sizing, balance, input.tariff, input.consumption, false, STUDY_DEFAULTS, 99_999,
+    );
+    expect(eco.netInvestmentEUR).toBe(0);
   });
 });

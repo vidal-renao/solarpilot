@@ -29,6 +29,9 @@ export function StudyForm() {
     roofAreaM2: "",
     consumptionSource: "factura",
     withBattery: false,
+    clientType: "particular",
+    annualIbiEUR: "",
+    habitualResidence: false,
   });
 
   const set = <K extends keyof typeof values>(key: K, value: (typeof values)[K]) =>
@@ -176,6 +179,63 @@ export function StudyForm() {
               </label>
             </div>
           </div>
+
+          {/* Segunda fila: lo que determina a que ayudas se puede optar. */}
+          <div className="mt-4 grid gap-4 rounded border border-line bg-ink-raised p-4 sm:grid-cols-4">
+            <div>
+              <label className={labelBase} htmlFor="clientType">
+                Quien instala
+              </label>
+              <select
+                id="clientType"
+                name="clientType"
+                className={inputBase}
+                value={values.clientType}
+                onChange={(e) => set("clientType", e.target.value)}
+              >
+                <option value="particular">Particular</option>
+                <option value="empresa">Empresa o autonomo</option>
+              </select>
+              <p className="mt-1 text-[11px] text-mist-dim">Condiciona las ayudas</p>
+            </div>
+
+            <div>
+              <label className={labelBase} htmlFor="annualIbiEUR">
+                IBI anual
+              </label>
+              <input
+                id="annualIbiEUR"
+                name="annualIbiEUR"
+                type="number"
+                min="1"
+                placeholder="—"
+                className={`${inputBase} tabular`}
+                value={values.annualIbiEUR}
+                onChange={(e) => set("annualIbiEUR", e.target.value)}
+              />
+              <p className="mt-1 text-[11px] text-mist-dim">Para estimar la bonificacion</p>
+            </div>
+
+            <div className="sm:col-span-2">
+              <span className={labelBase}>Deduccion en el IRPF</span>
+              <label className="flex cursor-pointer items-start gap-2 text-sm text-mist">
+                <input
+                  type="checkbox"
+                  name="habitualResidence"
+                  className="mt-1 accent-sun"
+                  disabled={values.clientType !== "particular"}
+                  checked={values.habitualResidence}
+                  onChange={(e) => set("habitualResidence", e.target.checked)}
+                />
+                <span className="leading-snug">
+                  Es vivienda habitual y habra certificado energetico antes y despues
+                  <span className="mt-0.5 block text-[11px] text-mist-dim">
+                    Sin esto la deduccion se muestra, pero no se descuenta del retorno.
+                  </span>
+                </span>
+              </label>
+            </div>
+          </div>
         </details>
 
         {state && !state.ok && (
@@ -200,7 +260,10 @@ export function StudyForm() {
               exportPrice: values.exportPrice,
               roofAreaM2: values.roofAreaM2,
               consumptionSource: values.consumptionSource,
+              clientType: values.clientType,
+              annualIbiEUR: values.annualIbiEUR,
               ...(values.withBattery ? { withBattery: "on" } : {}),
+              ...(values.habitualResidence ? { habitualResidence: "on" } : {}),
             }}
           />
         </div>

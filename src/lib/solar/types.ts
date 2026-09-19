@@ -1,3 +1,5 @@
+import type { IncentiveSummary } from "./incentives";
+
 /**
  * Tipos del dominio del preestudio solar.
  *
@@ -102,6 +104,17 @@ export interface StudyInput {
   maxKWp?: number;
   /** Incluir bateria en el dimensionado. */
   withBattery?: boolean;
+
+  /** Particular o empresa. Solo los particulares acceden a la deduccion del IRPF. */
+  isResidential?: boolean;
+  /**
+   * Si consta que es vivienda habitual y que habra certificados energeticos
+   * antes y despues. Sin esto la deduccion se muestra como potencial, no se
+   * descuenta.
+   */
+  meetsIrpfConditions?: boolean;
+  /** Cuota anual del IBI, si el cliente la conoce. */
+  annualIbiEUR?: number;
 }
 
 export interface SystemSizing {
@@ -128,15 +141,64 @@ export interface EnergyBalance {
   monthlyProductionKWh: number[];
 }
 
+/** Una fila del cuadro de amortizacion. */
+export interface CashflowYear {
+  year: number;
+  /** Produccion del ano, ya degradada. */
+  productionKWh: number;
+  savingsEUR: number;
+  cumulativeEUR: number;
+  /** Si en este ano el acumulado supera la inversion. */
+  breakEven: boolean;
+}
+
+/**
+ * Un escenario de evolucion del precio de la luz.
+ *
+ * El precio futuro de la energia es el supuesto que mas mueve el retorno y
+ * el que nadie puede conocer. En lugar de elegir uno y presentarlo como si
+ * fuese un dato, se muestran varios y se deja ver el rango.
+ */
+export interface SensitivityScenario {
+  label: string;
+  annualEscalation: number;
+  paybackYears: number | null;
+  lifetimeSavingsEUR: number;
+}
+
 export interface Economics {
+  /** Coste de la instalacion antes de ayudas. */
   investmentEUR: number;
+  /** Lo que realmente desembolsa el cliente tras los incentivos aplicables. */
+  netInvestmentEUR: number;
+
   firstYearSavingsEUR: number;
+  /** Parte del ahorro que viene de dejar de comprar energia. */
+  selfConsumptionSavingsEUR: number;
+  /** Parte que viene de compensar excedentes, ya con el tope legal aplicado. */
+  compensationEUR: number;
+  /**
+   * Si el tope de la compensacion simplificada ha recortado el ahorro.
+   *
+   * El RD 244/2019 limita la compensacion al termino de energia de la
+   * factura: descuenta hasta dejarlo a cero, pero nunca paga dinero. Cuando
+   * esto se activa, el cliente esta regalando energia a la red.
+   */
+  compensationCapped: boolean;
+  /** Excedente que no se puede compensar por haber alcanzado el tope. */
+  uncompensatedExportKWh: number;
+
   /** Anos. null si no amortiza en la vida util considerada. */
   simplePaybackYears: number | null;
   /** Ahorro acumulado a 25 anos, con degradacion. */
   lifetimeSavingsEUR: number;
   /** Toneladas de CO2 evitadas al ano. */
   avoidedCO2TonnesPerYear: number;
+
+  /** Cuadro ano a ano. */
+  schedule: CashflowYear[];
+  /** El retorno bajo distintas hipotesis de precio de la energia. */
+  sensitivity: SensitivityScenario[];
 }
 
 export interface PreliminaryStudy {
@@ -144,6 +206,8 @@ export interface PreliminaryStudy {
   sizing: Traced<SystemSizing>;
   energy: Traced<EnergyBalance>;
   economics: Traced<Economics>;
+  /** Ayudas e incentivos, separando lo aplicable de lo meramente posible. */
+  incentives: IncentiveSummary;
   /** Confianza global. La del eslabon mas debil, nunca la del mas fuerte. */
   overallConfidence: Confidence;
   assumptions: Assumption[];

@@ -43,7 +43,22 @@ export function weakestConfidence(...values: Confidence[]): Confidence {
 
 Eso tiene una consecuencia comercial incómoda y deliberada: el informe **abre con la confianza, antes que con ningún euro**. Es lo contrario de lo que hace el software del sector, y es lo que convierte una estimación en algo defendible delante de un cliente o de un técnico.
 
-El resto sale de ahí. Los supuestos se declaran en lugar de esconderse en constantes. La escalada del precio de la luz se fija en cero a propósito, porque es el supuesto más fácil de usar para inflar un retorno: el plazo que se muestra es un suelo, no una expectativa.
+El resto sale de ahí. Los supuestos se declaran en lugar de esconderse en constantes. La escalada del precio de la luz se fija en cero a propósito, porque es el supuesto más fácil de usar para inflar un retorno: el plazo que se muestra es un suelo, no una expectativa, y la sensibilidad enseña el rango en vez de esconderlo.
+
+### El tope que casi nadie aplica
+
+La compensación simplificada del RD 244/2019 solo puede descontar **hasta dejar a cero el término de energía de la factura**. Nunca se cobra dinero por el excedente.
+
+Multiplicar kWh vertidos por un precio, sin tope, infla el ahorro de cualquier instalación sobredimensionada — que es justo donde más tienta hacerlo, porque es donde más se factura. Aquí el tope se aplica, y cuando muerde el informe lo dice con todas las letras: *«esta instalación vierte más energía de la que puede compensar, sobran N kWh al año que se regalan a la red»*.
+
+### Ayudas: lo aplicable y lo posible, separados
+
+Las ayudas cambian el retorno de forma material, y los calculadores suelen ignorarlas o darlas por concedidas. Aquí se modelan con ámbito territorial, requisitos, plazo y fuente citada con fecha de consulta:
+
+- **Deducción del IRPF** — 40 % sobre una base máxima de 7.500 €. Solo se descuenta del retorno si consta que es vivienda habitual y que habrá certificado energético antes y después. Si no, se muestra pero no se aplica.
+- **Bonificaciones de IBI e ICIO** — municipales. Dependen de la ordenanza de cada ayuntamiento, así que **nunca** entran en el cálculo: figuran como margen de mejora.
+
+Una ayuda no está concedida hasta que la concede quien puede, y el retorno no debería suponer lo contrario.
 
 ---
 
@@ -55,7 +70,7 @@ Un portfolio que no distingue esto no vale nada.
 |---|---|
 | Radiación y producción | **Real.** PVGIS v5.2, verificado contra el servicio en vivo |
 | Geocodificación | **Real.** Nominatim (OpenStreetMap) |
-| Motor de cálculo | **Real.** Dimensionado, balance y economía, con 72 pruebas |
+| Motor de cálculo | **Real.** Dimensionado, balance, economía e incentivos, con 95 pruebas |
 | Base de datos | **Real.** Postgres en Supabase, con migraciones versionadas |
 | Precios de instalación | **Ficticios.** Catálogo de demostración, tramos plausibles |
 | Datos de cubierta | **Apagado.** Google Solar está implementado pero sin clave |
@@ -77,7 +92,8 @@ src/
 │   │   ├── pvgis.ts        Comisión Europea. Parseo defensivo campo a campo
 │   │   ├── geocode.ts      Nominatim
 │   │   ├── roof.ts         Fuentes de cubierta con respaldo ordenado
-│   │   └── engine.ts       Dimensionado, balance y economía. Funciones puras
+│   │   ├── engine.ts       Dimensionado, balance y economía. Funciones puras
+│   │   └── incentives.ts   Ayudas, con ámbito, requisitos y fuente citada
 │   ├── db/                 Esquema Postgres, cliente y repositorio
 │   ├── consent.ts          Consentimiento versionado
 │   └── cache.ts            Memoria corta y tiempos máximos de red
@@ -117,7 +133,7 @@ El sembrado llama a PVGIS y a Nominatim de verdad, así que tarda unos segundos 
 | Script | Qué hace |
 |---|---|
 | `npm run dev` | Servidor de desarrollo |
-| `npm test` | 72 pruebas |
+| `npm test` | 95 pruebas |
 | `npm run typecheck` | TypeScript en modo estricto |
 | `npm run lint` | ESLint |
 | `npm run build` | Compilación de producción |

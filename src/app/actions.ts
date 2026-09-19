@@ -21,6 +21,10 @@ const studySchema = z.object({
   roofAreaM2: z.coerce.number().positive().max(10_000).optional(),
   withBattery: z.boolean().default(false),
   consumptionSource: z.enum(["factura", "curva_horaria", "perfil_tipo"]).default("factura"),
+  // Condiciona a que incentivos se puede optar.
+  clientType: z.enum(["particular", "empresa"]).default("particular"),
+  habitualResidence: z.boolean().default(false),
+  annualIbiEUR: z.coerce.number().positive().max(100_000).optional(),
 });
 
 type StudyParams = z.infer<typeof studySchema>;
@@ -39,6 +43,9 @@ function readStudyFields(formData: FormData) {
     roofAreaM2: formData.get("roofAreaM2") || undefined,
     withBattery: formData.get("withBattery") === "on",
     consumptionSource: formData.get("consumptionSource") || undefined,
+    clientType: formData.get("clientType") || undefined,
+    habitualResidence: formData.get("habitualResidence") === "on",
+    annualIbiEUR: formData.get("annualIbiEUR") || undefined,
   };
 }
 
@@ -104,6 +111,11 @@ async function computeStudy(data: StudyParams): Promise<StudyResponse> {
     geometry,
     usableRoofAreaM2: roof.usableAreaM2,
     withBattery: data.withBattery,
+    isResidential: data.clientType === "particular",
+    // La deduccion del IRPF exige vivienda habitual y certificados. Sin que
+    // conste, se muestra como potencial en lugar de descontarse del retorno.
+    meetsIrpfConditions: data.clientType === "particular" && data.habitualResidence,
+    annualIbiEUR: data.annualIbiEUR,
   };
 
   return {

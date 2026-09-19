@@ -58,13 +58,30 @@ function estudioFalso(overrides: Partial<PreliminaryStudy> = {}): PreliminaryStu
     economics: {
       value: {
         investmentEUR: 3937.5,
+        netInvestmentEUR: 3937.5,
         firstYearSavingsEUR: 547.9,
+        selfConsumptionSavingsEUR: 463.5,
+        compensationEUR: 84.4,
+        compensationCapped: false,
+        uncompensatedExportKWh: 0,
         simplePaybackYears: 7.3,
         lifetimeSavingsEUR: 12_900.4,
         avoidedCO2TonnesPerYear: 0.7,
+        schedule: [
+          { year: 1, productionKWh: 3511.3, savingsEUR: 547.9, cumulativeEUR: 547.9, breakEven: false },
+        ],
+        sensitivity: [
+          { label: "Precio congelado", annualEscalation: 0, paybackYears: 7.3, lifetimeSavingsEUR: 12_900.4 },
+        ],
       },
       provenance: { source: "catalogo", detail: "prueba" },
       confidence: "baja",
+    },
+    incentives: {
+      applied: [],
+      potential: [],
+      appliedTotalEUR: 0,
+      potentialTotalEUR: 0,
     },
     overallConfidence: "baja",
     assumptions: [{ id: "x", description: "d", value: "v", impact: "i" }],

@@ -12,10 +12,13 @@ import {
   STUDY_DEFAULTS,
   type StudyDefaults,
 } from "./assumptions";
+import { estimateIncentives } from "./incentives";
 import type { PvgisProduction } from "./pvgis";
 import {
   weakestConfidence,
   type Assumption,
+  type CashflowYear,
+  type SensitivityScenario,
   type Confidence,
   type ConsumptionInput,
   type Economics,
@@ -162,6 +165,85 @@ export function estimateEnergyBalance(
   };
 }
 
+/**
+ * Ahorro del primer ano, desglosado y con el tope legal aplicado.
+ *
+ * La compensacion simplificada del RD 244/2019 solo puede descontar hasta el
+ * termino de energia de la factura. Llegado ese punto la factura de energia
+ * queda a cero y el excedente restante se vierte sin retribucion: no genera
+ * ingreso. Calcularlo sin tope infla el ahorro de cualquier instalacion
+ * sobredimensionada, que es justo donde mas tienta hacerlo.
+ */
+export function computeAnnualSavings(
+  balance: EnergyBalance,
+  tariff: TariffInput,
+): {
+  selfConsumptionSavingsEUR: number;
+  compensationEUR: number;
+  compensationCapped: boolean;
+  uncompensatedExportKWh: number;
+  totalEUR: number;
+} {
+  const selfConsumptionSavingsEUR = balance.selfConsumedKWh * tariff.importPricePerKWh;
+
+  const compensacionBruta = balance.exportedKWh * tariff.exportPricePerKWh;
+  // Tope: lo que queda por pagar de energia comprada a la red.
+  const topeLegal = balance.gridImportKWh * tariff.importPricePerKWh;
+
+  const compensationEUR = Math.min(compensacionBruta, topeLegal);
+  const compensationCapped = compensacionBruta > topeLegal + 1e-9;
+
+  const uncompensatedExportKWh =
+    compensationCapped && tariff.exportPricePerKWh > 0
+      ? (compensacionBruta - topeLegal) / tariff.exportPricePerKWh
+      : 0;
+
+  return {
+    selfConsumptionSavingsEUR: round(selfConsumptionSavingsEUR),
+    compensationEUR: round(compensationEUR),
+    compensationCapped,
+    uncompensatedExportKWh: round(uncompensatedExportKWh),
+    totalEUR: round(selfConsumptionSavingsEUR + compensationEUR),
+  };
+}
+
+/** Proyecta el acumulado ano a ano y devuelve el plazo de recuperacion. */
+function project(
+  firstYearSavingsEUR: number,
+  investmentEUR: number,
+  escalation: number,
+  defaults: StudyDefaults,
+): { schedule: CashflowYear[]; paybackYears: number | null; total: number } {
+  const schedule: CashflowYear[] = [];
+  let cumulative = 0;
+  let paybackYears: number | null = null;
+
+  for (let year = 1; year <= defaults.analysisYears; year += 1) {
+    const degradation = (1 - defaults.annualDegradationRate) ** (year - 1);
+    const priceFactor = (1 + escalation) ** (year - 1);
+    const yearSavings = firstYearSavingsEUR * degradation * priceFactor;
+    const before = cumulative;
+    cumulative += yearSavings;
+
+    const cruzaAhora =
+      paybackYears === null && cumulative >= investmentEUR && yearSavings > 0;
+    if (cruzaAhora) {
+      const remaining = investmentEUR - before;
+      paybackYears = round(year - 1 + remaining / yearSavings, 1);
+    }
+
+    schedule.push({
+      year,
+      productionKWh: 0, // se rellena en computeEconomics, que conoce la produccion
+      savingsEUR: round(yearSavings),
+      cumulativeEUR: round(cumulative),
+      breakEven: cruzaAhora,
+    });
+  }
+
+  return { schedule, paybackYears, total: round(cumulative) };
+}
+
 export function computeEconomics(
   sizing: SystemSizing,
   balance: EnergyBalance,
@@ -169,6 +251,8 @@ export function computeEconomics(
   consumption: ConsumptionInput,
   withBattery: boolean,
   defaults: StudyDefaults = STUDY_DEFAULTS,
+  /** Ayudas que reducen el desembolso. Ya filtradas: solo las aplicables. */
+  appliedIncentivesEUR = 0,
 ): Economics {
   const modulesCost = sizing.recommendedKWp * pricePerKWp(sizing.recommendedKWp);
 
@@ -178,36 +262,51 @@ export function computeEconomics(
   const batteryCost = batteryKWh * defaults.batteryCostPerKWh;
 
   const investmentEUR = modulesCost + batteryCost;
+  const netInvestmentEUR = Math.max(0, investmentEUR - appliedIncentivesEUR);
 
-  const firstYearSavingsEUR =
-    balance.selfConsumedKWh * tariff.importPricePerKWh +
-    balance.exportedKWh * tariff.exportPricePerKWh;
+  const savings = computeAnnualSavings(balance, tariff);
 
-  // Acumulado con degradacion de modulos. Sin descuento financiero: el
-  // resultado es un plazo de recuperacion nominal, no un VAN.
-  let cumulative = 0;
-  let paybackYears: number | null = null;
-  for (let year = 1; year <= defaults.analysisYears; year += 1) {
-    const degradation = (1 - defaults.annualDegradationRate) ** (year - 1);
-    const escalation = (1 + defaults.energyPriceEscalation) ** (year - 1);
-    const yearSavings = firstYearSavingsEUR * degradation * escalation;
-    const before = cumulative;
-    cumulative += yearSavings;
-    if (paybackYears === null && cumulative >= investmentEUR && yearSavings > 0) {
-      const remaining = investmentEUR - before;
-      paybackYears = round(year - 1 + remaining / yearSavings, 1);
-    }
-  }
+  // El retorno se mide sobre lo que el cliente desembolsa de verdad.
+  const base = project(savings.totalEUR, netInvestmentEUR, defaults.energyPriceEscalation, defaults);
+
+  // La produccion del cuadro sigue la misma degradacion que el ahorro.
+  const schedule = base.schedule.map((fila) => ({
+    ...fila,
+    productionKWh: round(
+      balance.annualProductionKWh * (1 - defaults.annualDegradationRate) ** (fila.year - 1),
+    ),
+  }));
+
+  const sensitivity: SensitivityScenario[] = [
+    { label: "Precio congelado", escalation: 0 },
+    { label: "Sube un 2 % al ano", escalation: 0.02 },
+    { label: "Sube un 4 % al ano", escalation: 0.04 },
+  ].map(({ label, escalation }) => {
+    const run = project(savings.totalEUR, netInvestmentEUR, escalation, defaults);
+    return {
+      label,
+      annualEscalation: escalation,
+      paybackYears: run.paybackYears,
+      lifetimeSavingsEUR: run.total,
+    };
+  });
 
   return {
     investmentEUR: round(investmentEUR),
-    firstYearSavingsEUR: round(firstYearSavingsEUR),
-    simplePaybackYears: paybackYears,
-    lifetimeSavingsEUR: round(cumulative),
+    netInvestmentEUR: round(netInvestmentEUR),
+    firstYearSavingsEUR: savings.totalEUR,
+    selfConsumptionSavingsEUR: savings.selfConsumptionSavingsEUR,
+    compensationEUR: savings.compensationEUR,
+    compensationCapped: savings.compensationCapped,
+    uncompensatedExportKWh: savings.uncompensatedExportKWh,
+    simplePaybackYears: base.paybackYears,
+    lifetimeSavingsEUR: base.total,
     avoidedCO2TonnesPerYear: round(
       (balance.annualProductionKWh * defaults.gridEmissionFactorKgPerKWh) / 1000,
       2,
     ),
+    schedule,
+    sensitivity,
   };
 }
 
@@ -244,6 +343,23 @@ export function buildStudy(
     withBattery,
     defaults,
   );
+  // Los incentivos se estiman sobre la inversion bruta y despues se
+  // descuentan: solo los que cumplen sus condiciones alteran el retorno.
+  const grossInvestment =
+    sizing.recommendedKWp * pricePerKWp(sizing.recommendedKWp) +
+    (withBattery
+      ? (input.consumption.annualKWh / 365) *
+        defaults.batteryKWhPerDailyKWh *
+        defaults.batteryCostPerKWh
+      : 0);
+
+  const incentives = estimateIncentives({
+    investmentEUR: grossInvestment,
+    isResidential: input.isResidential ?? true,
+    meetsIrpfConditions: input.meetsIrpfConditions ?? false,
+    annualIbiEUR: input.annualIbiEUR,
+  });
+
   const economics = computeEconomics(
     sizing,
     balance,
@@ -251,6 +367,7 @@ export function buildStudy(
     input.consumption,
     withBattery,
     defaults,
+    incentives.appliedTotalEUR,
   );
 
   const consumoConf = consumptionConfidence(input.consumption.source);
@@ -363,6 +480,7 @@ export function buildStudy(
       },
       confidence: weakestConfidence(consumoConf, balanceConf, "media"),
     },
+    incentives,
     overallConfidence: weakestConfidence(consumoConf, produccionConf, balanceConf),
     assumptions,
     missingData,

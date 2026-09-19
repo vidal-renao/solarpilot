@@ -1,6 +1,8 @@
+import type { IncentiveEstimate } from "@/lib/solar/incentives";
 import type { RoofInsight } from "@/lib/solar/roof";
 import type { Confidence, PreliminaryStudy } from "@/lib/solar/types";
 
+import { AmortizationChart } from "./AmortizationChart";
 import { SolarYear } from "./SolarYear";
 
 const NIVEL: Record<Confidence, { puntos: number; texto: string }> = {
@@ -88,6 +90,75 @@ function Panel({
 const eur = (n: number) => n.toLocaleString("es-ES", { maximumFractionDigits: 0 });
 const kwh = (n: number) => n.toLocaleString("es-ES", { maximumFractionDigits: 0 });
 
+const AMBITO: Record<string, string> = {
+  estatal: "Estatal",
+  autonomico: "Autonomico",
+  municipal: "Municipal",
+};
+
+/**
+ * Una ayuda, con lo que hace falta para acceder a ella.
+ *
+ * El importe se muestra plegado y las condiciones desplegadas a un clic. Un
+ * incentivo sin sus requisitos al lado es una cifra que el cliente dara por
+ * suya, y la mayoria de ellos exigen tramites que nadie le ha contado.
+ */
+function Incentivo({
+  estimate,
+  aplicada = false,
+}: {
+  estimate: IncentiveEstimate;
+  aplicada?: boolean;
+}) {
+  const { program } = estimate;
+  return (
+    <details className="border-b border-line py-3 last:border-0">
+      <summary className="flex cursor-pointer flex-wrap items-baseline justify-between gap-2">
+        <span className="flex items-baseline gap-2">
+          <span className="text-sm text-snow">{program.name}</span>
+          <span className="rounded-full border border-line px-2 py-0.5 text-[10px] text-mist-dim">
+            {AMBITO[program.scope]}
+          </span>
+        </span>
+        <span
+          className="tabular text-sm"
+          style={{ color: aplicada ? "var(--color-sun)" : "var(--color-mist)" }}
+        >
+          {aplicada ? "−" : "hasta "}
+          {eur(estimate.amountEUR)} €
+        </span>
+      </summary>
+
+      <div className="mt-3 space-y-3 pl-1">
+        <p className="text-xs leading-relaxed text-mist">{program.description}</p>
+        <p className="text-xs text-mist-dim">
+          Calculo: <span className="tabular">{estimate.basis}</span>
+        </p>
+        <ul className="space-y-1">
+          {program.requirements.map((r) => (
+            <li key={r} className="border-l border-line pl-3 text-xs leading-relaxed text-mist-dim">
+              {r}
+            </li>
+          ))}
+        </ul>
+        <p className="text-xs text-mist-dim">
+          {program.deadline ? `Plazo: ${program.deadline}. ` : ""}
+          Fuente:{" "}
+          <a
+            href={program.source.url}
+            target="_blank"
+            rel="noreferrer"
+            className="underline decoration-line underline-offset-2 transition-colors hover:text-sun"
+          >
+            {program.source.label}
+          </a>{" "}
+          (consultada el {program.source.consultedAt}).
+        </p>
+      </div>
+    </details>
+  );
+}
+
 export function StudyResult({
   study,
   roof,
@@ -152,20 +223,127 @@ export function StudyResult({
         </dl>
       </Panel>
 
-      <Panel titulo="Lo que cuesta y lo que devuelve">
-        <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
-          <Dato valor={eur(ec.investmentEUR)} unidad="€" etiqueta="Inversion" />
-          <Dato valor={eur(ec.firstYearSavingsEUR)} unidad="€/año" etiqueta="Ahorro el primer año" destacado />
+      <Panel titulo="De donde sale el ahorro">
+        <div className="grid grid-cols-2 gap-6 sm:grid-cols-3">
           <Dato
-            valor={ec.simplePaybackYears?.toLocaleString("es-ES") ?? "—"}
-            unidad="años"
-            etiqueta="Retorno"
+            valor={eur(ec.selfConsumptionSavingsEUR)}
+            unidad="€/año"
+            etiqueta="Energia que dejas de comprar"
+            destacado
           />
-          <Dato valor={eur(ec.lifetimeSavingsEUR)} unidad="€" etiqueta="Ahorro a 25 años" />
+          <Dato
+            valor={eur(ec.compensationEUR)}
+            unidad="€/año"
+            etiqueta="Compensacion de excedentes"
+          />
+          <Dato valor={eur(ec.firstYearSavingsEUR)} unidad="€/año" etiqueta="Total el primer año" />
         </div>
+
+        {ec.compensationCapped ? (
+          <div className="mt-5 border-l-2 border-sun pl-4">
+            <p className="text-sm leading-relaxed text-snow">
+              Esta instalacion vierte mas energia de la que puede compensar.
+            </p>
+            <p className="mt-1.5 text-xs leading-relaxed text-mist-dim">
+              La compensacion simplificada solo descuenta hasta dejar a cero el termino de energia
+              de tu factura: nunca se cobra dinero por el excedente. Con este dimensionado sobran{" "}
+              <span className="tabular text-sun">{kwh(ec.uncompensatedExportKWh)} kWh</span> al año
+              que se regalan a la red. Bajar potencia, o anadir bateria, aprovecharia mas.
+            </p>
+          </div>
+        ) : (
+          <p className="mt-5 text-xs leading-relaxed text-mist-dim">
+            La compensacion de excedentes solo descuenta hasta dejar a cero el termino de energia de
+            la factura; nunca genera un cobro. Con este dimensionado no se alcanza ese tope, asi que
+            se aprovecha todo lo vertido.
+          </p>
+        )}
+      </Panel>
+
+      <Panel
+        titulo="Cuanto tarda en pagarse"
+        aside={
+          <span className="tabular text-xs text-mist-dim">
+            {ec.netInvestmentEUR < ec.investmentEUR
+              ? `${eur(ec.investmentEUR)} € − ${eur(ec.investmentEUR - ec.netInvestmentEUR)} € de ayudas`
+              : `${eur(ec.investmentEUR)} € de inversion`}
+          </span>
+        }
+      >
+        <AmortizationChart
+          schedule={ec.schedule}
+          investmentEUR={ec.netInvestmentEUR}
+          paybackYears={ec.simplePaybackYears}
+        />
+
+        <div className="mt-6">
+          <h4 className="mb-3 text-xs uppercase tracking-wider text-mist-dim">
+            Y si la luz sube de precio
+          </h4>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs text-mist-dim">
+                <th scope="col" className="pb-2 font-medium">Escenario</th>
+                <th scope="col" className="pb-2 text-right font-medium">Retorno</th>
+                <th scope="col" className="pb-2 text-right font-medium">Ahorro a 25 años</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ec.sensitivity.map((s) => (
+                <tr key={s.label} className="border-t border-line">
+                  <td className="py-2 text-mist">{s.label}</td>
+                  <td className="tabular py-2 text-right">
+                    {s.paybackYears
+                      ? `${s.paybackYears.toLocaleString("es-ES")} años`
+                      : "no amortiza"}
+                  </td>
+                  <td className="tabular py-2 text-right">{eur(s.lifetimeSavingsEUR)} €</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="mt-3 text-xs leading-relaxed text-mist-dim">
+            El calculo principal usa el escenario de precio congelado. Es el mas conservador y el
+            unico que no exige adivinar el futuro: cualquier subida real acorta el plazo.
+          </p>
+        </div>
+      </Panel>
+
+      <Panel
+        titulo="Ayudas e incentivos"
+        aside={
+          <span className="tabular text-xs text-mist-dim">
+            {study.incentives.applied.length} aplicadas ·{" "}
+            {study.incentives.potential.length} por verificar
+          </span>
+        }
+      >
+        {study.incentives.applied.length > 0 && (
+          <div className="mb-6">
+            <h4 className="mb-2 text-xs uppercase tracking-wider text-mist-dim">
+              Descontadas del calculo
+            </h4>
+            {study.incentives.applied.map((i) => (
+              <Incentivo key={i.program.id} estimate={i} aplicada />
+            ))}
+          </div>
+        )}
+
+        <div>
+          <h4 className="mb-2 text-xs uppercase tracking-wider text-mist-dim">
+            Posibles, no incluidas en el retorno
+          </h4>
+          {study.incentives.potential.map((i) => (
+            <Incentivo key={i.program.id} estimate={i} />
+          ))}
+        </div>
+
         <p className="mt-5 text-xs leading-relaxed text-mist-dim">
-          El retorno se calcula con degradacion de los modulos y sin subida del precio de la luz. Es
-          un suelo, no una expectativa: cualquier encarecimiento de la energia lo acorta.
+          Solo se descuenta del retorno lo que consta que se cumple. Las bonificaciones municipales
+          dependen de la ordenanza de cada ayuntamiento, asi que figuran como margen de mejora
+          —hasta{" "}
+          <span className="tabular text-sun">{eur(study.incentives.potentialTotalEUR)} €</span>— y
+          no como dinero seguro. Ninguna ayuda esta concedida hasta que la concede quien puede.
         </p>
       </Panel>
 
