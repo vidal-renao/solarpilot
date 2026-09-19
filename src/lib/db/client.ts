@@ -37,12 +37,29 @@ function connectionString(): string {
   return url;
 }
 
+/**
+ * Decide si exigir TLS.
+ *
+ * Supabase rechaza las conexiones sin cifrar, pero una cadena pegada del
+ * panel puede venir sin `sslmode`, y postgres-js no lo activa por su cuenta.
+ * El fallo aparece solo en produccion y con un mensaje que no apunta al TLS,
+ * asi que se decide aqui: si la URL ya lo especifica se respeta, y si no, se
+ * exige salvo en local, donde lo habitual es un Postgres sin certificado.
+ */
+function sslMode(url: string): "require" | false | undefined {
+  if (/[?&]sslmode=/.test(url)) return undefined;
+  const esLocal = /@(localhost|127\.0\.0\.1|\[::1\])[:/]/.test(url);
+  return esLocal ? false : "require";
+}
+
 function resolve(): Database {
   if (!globalForDb.__solarpilotDb) {
-    globalForDb.__solarpilotSql ??= postgres(connectionString(), {
+    const url = connectionString();
+    globalForDb.__solarpilotSql ??= postgres(url, {
       prepare: false,
       max: 1,
       idle_timeout: 20,
+      ssl: sslMode(url),
     });
     globalForDb.__solarpilotDb = drizzle(globalForDb.__solarpilotSql, { schema });
   }
