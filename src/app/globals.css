@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+@theme {
+  /* Fondo: indigo profundo. Noche, no negro. */
+  --color-ink: #0f1626;
+  --color-ink-raised: #18203a;
+  --color-ink-sunken: #0a0f1c;
+  --color-line: #2a3354;
+  --color-line-bright: #3d4874;
+
+  /* Texto */
+  --color-snow: #f4f6fb;
+  --color-mist: #a8b2cc;
+  --color-mist-dim: #6b7796;
+
+  /* Unico acento. Reservado a valores de energia medidos. */
+  --color-sun: #f5b544;
+  --color-sun-dim: #8a6524;
+
+  --font-display: var(--font-space-grotesk), system-ui, sans-serif;
+  --font-sans: var(--font-plex-sans), system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+}
+
+@layer base {
+  html {
+    background-color: var(--color-ink);
+  }
+
+  body {
+    background-color: var(--color-ink);
+    color: var(--color-snow);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Todo numero medido va con cifras tabulares: las columnas alinean. */
+  .tabular {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-sun);
+    outline-offset: 3px;
+  }
+
+  ::selection {
+    background-color: var(--color-sun);
+    color: var(--color-ink);
+  }
+}
+
+/* El arco solar: las barras suben en secuencia, de enero a diciembre. */
+@keyframes rise {
+  from {
+    transform: scaleY(0.04);
+    opacity: 0;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.bar-rise {
+  transform-origin: bottom;
+  animation: rise 620ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@keyframes fade-up {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.fade-up {
+  animation: fade-up 520ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar-rise,
+  .fade-up {
+    animation: none;
+  }
+}
