@@ -1,5 +1,5 @@
 {
-  "id": "6a7325be-2f45-44a4-a4ba-bbb8a041487c",
+  "id": "483bba72-6543-41fe-a4fa-8020a3a9eaef",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -93,7 +93,7 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
-      "isRLSEnabled": false
+      "isRLSEnabled": true
     },
     "public.solar_leads": {
       "name": "solar_leads",
@@ -244,7 +244,7 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
-      "isRLSEnabled": false
+      "isRLSEnabled": true
     },
     "public.solar_studies": {
       "name": "solar_studies",
@@ -347,7 +347,7 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
-      "isRLSEnabled": false
+      "isRLSEnabled": true
     }
   },
   "enums": {},

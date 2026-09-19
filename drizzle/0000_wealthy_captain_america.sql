@@ -9,6 +9,7 @@ CREATE TABLE "solar_consents" (
 	"channel" text NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "solar_consents" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "solar_leads" (
 	"id" text PRIMARY KEY NOT NULL,
 	"created_at" timestamp with time zone NOT NULL,
@@ -27,6 +28,7 @@ CREATE TABLE "solar_leads" (
 	"notes" text
 );
 --> statement-breakpoint
+ALTER TABLE "solar_leads" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "solar_studies" (
 	"id" text PRIMARY KEY NOT NULL,
 	"lead_id" text NOT NULL,
@@ -40,6 +42,7 @@ CREATE TABLE "solar_studies" (
 	"payload" jsonb NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "solar_studies" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "solar_consents" ADD CONSTRAINT "solar_consents_lead_id_solar_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."solar_leads"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "solar_studies" ADD CONSTRAINT "solar_studies_lead_id_solar_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."solar_leads"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "solar_consents_lead_idx" ON "solar_consents" USING btree ("lead_id");--> statement-breakpoint

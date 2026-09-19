@@ -15,6 +15,15 @@ import { LEAD_STATES } from "../lead-states";
  * Las tablas van prefijadas con `solar_` porque esta base puede compartirse
  * con otras aplicaciones del mismo ecosistema. Nombres tan genericos como
  * `leads` o `consents` colisionarian tarde o temprano.
+ *
+ * Todas llevan RLS activado y ninguna politica. En Supabase eso no es un
+ * detalle: el proyecto publica una API REST con clave anonima sobre las
+ * tablas, y `solar_leads` guarda nombres, correos y direcciones. Sin RLS
+ * serian legibles por cualquiera que tenga la clave publicable.
+ *
+ * La aplicacion no se ve afectada porque conecta por Postgres directo con el
+ * rol propietario de las tablas, que no esta sujeto a RLS. El dia que algo
+ * deba leerse desde el navegador habra que escribir politicas explicitas.
  */
 
 export { LEAD_STATES, type LeadState } from "../lead-states";
@@ -52,7 +61,7 @@ export const leads = pgTable(
     index("solar_leads_created_idx").on(table.createdAt),
     index("solar_leads_email_idx").on(table.email),
   ],
-);
+).enableRLS();
 
 /**
  * Registro de consentimiento.
@@ -79,7 +88,7 @@ export const consents = pgTable(
     channel: text("channel").notNull(),
   },
   (table) => [index("solar_consents_lead_idx").on(table.leadId)],
-);
+).enableRLS();
 
 /**
  * Preestudio calculado, guardado entero.
@@ -111,7 +120,7 @@ export const studies = pgTable(
     payload: jsonb("payload").notNull(),
   },
   (table) => [index("solar_studies_lead_idx").on(table.leadId)],
-);
+).enableRLS();
 
 export type LeadRow = typeof leads.$inferSelect;
 export type NewLeadRow = typeof leads.$inferInsert;
