@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import { captureStudy } from "@/app/actions";
 import { currentConsent } from "@/lib/consent";
@@ -29,6 +29,13 @@ export function LeadCapture({
 }) {
   const [state, formAction, pending] = useActionState(captureStudy, null);
   const consent = currentConsent();
+
+  // Campos controlados por el mismo motivo que en el calculador: React 19
+  // vacia el formulario al terminar la accion, y un error de validacion no
+  // deberia costarle al usuario volver a teclear sus datos.
+  const [values, setValues] = useState({ name: "", email: "", phone: "", consent: false });
+  const set = <K extends keyof typeof values>(key: K, value: (typeof values)[K]) =>
+    setValues((previous) => ({ ...previous, [key]: value }));
 
   const errorIn = (field: string) =>
     state && !state.ok && state.field === field ? state.error : undefined;
@@ -76,6 +83,8 @@ export function LeadCapture({
               required
               autoComplete="name"
               className={inputBase}
+              value={values.name}
+              onChange={(event) => set("name", event.target.value)}
               aria-invalid={Boolean(errorIn("name"))}
             />
           </div>
@@ -90,6 +99,8 @@ export function LeadCapture({
               required
               autoComplete="email"
               className={inputBase}
+              value={values.email}
+              onChange={(event) => set("email", event.target.value)}
               aria-invalid={Boolean(errorIn("email"))}
             />
           </div>
@@ -103,6 +114,8 @@ export function LeadCapture({
               type="tel"
               autoComplete="tel"
               className={inputBase}
+              value={values.phone}
+              onChange={(event) => set("phone", event.target.value)}
             />
           </div>
         </div>
@@ -116,6 +129,8 @@ export function LeadCapture({
             type="checkbox"
             name="consent"
             className="mt-0.5 accent-sun"
+            checked={values.consent}
+            onChange={(event) => set("consent", event.target.checked)}
             aria-invalid={Boolean(errorIn("consent"))}
           />
           <span className="text-sm leading-relaxed text-mist">
