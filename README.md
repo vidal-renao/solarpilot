@@ -54,7 +54,7 @@ Un portfolio que no distingue esto no vale nada.
 | Radiación y producción | **Real.** PVGIS v5.2, verificado contra el servicio en vivo |
 | Geocodificación | **Real.** Nominatim (OpenStreetMap) |
 | Motor de cálculo | **Real.** Dimensionado, balance y economía, con 72 pruebas |
-| Base de datos | **Real.** SQLite mediante libSQL, con migraciones versionadas |
+| Base de datos | **Real.** Postgres en Supabase, con migraciones versionadas |
 | Precios de instalación | **Ficticios.** Catálogo de demostración, tramos plausibles |
 | Datos de cubierta | **Apagado.** Google Solar está implementado pero sin clave |
 
@@ -76,7 +76,7 @@ src/
 │   │   ├── geocode.ts      Nominatim
 │   │   ├── roof.ts         Fuentes de cubierta con respaldo ordenado
 │   │   └── engine.ts       Dimensionado, balance y economía. Funciones puras
-│   ├── db/                 Esquema, cliente y repositorio
+│   ├── db/                 Esquema Postgres, cliente y repositorio
 │   ├── consent.ts          Consentimiento versionado
 │   └── cache.ts            Memoria corta y tiempos máximos de red
 └── app/
@@ -102,12 +102,15 @@ Node 20 o superior.
 
 ```bash
 npm install
-npm run db:push     # crea la base local
-npm run db:seed     # seis leads con preestudios calculados de verdad
+cp .env.example .env.local   # y apuntar DATABASE_URL a un Postgres
+npm run db:push              # crea el esquema
+npm run db:seed              # seis leads con preestudios calculados de verdad
 npm run dev
 ```
 
-No hace falta ninguna clave de API. El sembrado llama a PVGIS y a Nominatim de verdad, así que tarda unos segundos y respeta el límite de una petición por segundo.
+Necesita un Postgres, pero ninguna clave de API. **Las pruebas no lo necesitan**: corren contra PGlite, Postgres compilado a WebAssembly, así que `npm test` funciona con solo clonar e instalar.
+
+El sembrado llama a PVGIS y a Nominatim de verdad, así que tarda unos segundos y respeta el límite de una petición por segundo.
 
 | Script | Qué hace |
 |---|---|
@@ -124,7 +127,7 @@ Todas opcionales. Ver `.env.example`.
 
 | Variable | Por defecto |
 |---|---|
-| `DATABASE_URL` | `file:./solarpilot.db` |
+| `DATABASE_URL` | Sin valor por defecto. En Supabase, la cadena del agrupador en modo transacción, puerto 6543 |
 | `GOOGLE_SOLAR_API_KEY` | Sin definir: la fuente automática de cubierta queda apagada |
 | `GEOCODER_USER_AGENT` | Nominatim exige identificarse |
 
@@ -142,6 +145,6 @@ Un proyecto honesto dice dónde termina.
 
 **El cache vive en memoria del proceso.** Con varias instancias cada una tiene la suya. Con tráfico real esto va a Redis.
 
-**SQLite es una decisión de demostración**, para que el proyecto arranque con un `git clone`. En producción sería Postgres; la traducción no es automática porque cambian los constructores de Drizzle, pero la forma de las tablas se mantiene.
+**Las tablas van prefijadas con `solar_`** porque la base puede compartirse con otras aplicaciones. `drizzle-kit` está configurado con `tablesFilter` para que solo mire lo suyo: sin eso, propondría borrar tablas ajenas en la primera migración.
 
 **El PDF se genera con el diálogo de impresión del navegador.** La hoja de estilos produce un documento correcto y evita arrastrar una librería de maquetación. El día que haya que enviar el PDF por correo sin intervención humana, habrá que renderizarlo en servidor.

@@ -1,30 +1,30 @@
-import { index, integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  doublePrecision,
+  index,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
 
 import { LEAD_STATES } from "../lead-states";
 
 /**
- * Esquema de la base de datos.
+ * Esquema de la base de datos. Postgres.
  *
- * Dialecto SQLite mediante libSQL, para que el proyecto arranque con un
- * `git clone` y un `npm install`, sin levantar nada mas. En produccion esto
- * seria Postgres: la traduccion no es automatica —cambian los constructores
- * de Drizzle y los tipos de columna— pero la forma de las tablas y las
- * relaciones se mantienen tal cual.
+ * Las tablas van prefijadas con `solar_` porque esta base puede compartirse
+ * con otras aplicaciones del mismo ecosistema. Nombres tan genericos como
+ * `leads` o `consents` colisionarian tarde o temprano.
  */
 
-/**
- * Estados del embudo comercial. Subconjunto real del pipeline del diseño.
- * Se definen fuera para que cliente y servidor compartan la lista sin
- * arrastrar el ORM al navegador.
- */
 export { LEAD_STATES, type LeadState } from "../lead-states";
 
-export const leads = sqliteTable(
-  "leads",
+export const leads = pgTable(
+  "solar_leads",
   {
     id: text("id").primaryKey(),
-    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
-    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
 
     name: text("name").notNull(),
     email: text("email").notNull(),
@@ -34,8 +34,8 @@ export const leads = sqliteTable(
     rawAddress: text("raw_address").notNull(),
     /** Direccion tal y como la devolvio el geocodificador. */
     formattedAddress: text("formatted_address"),
-    latitude: real("latitude"),
-    longitude: real("longitude"),
+    latitude: doublePrecision("latitude"),
+    longitude: doublePrecision("longitude"),
 
     state: text("state", { enum: LEAD_STATES }).notNull().default("nuevo"),
     /** Por que se perdio o se descarto. Un estado sin motivo no sirve. */
@@ -48,29 +48,28 @@ export const leads = sqliteTable(
     notes: text("notes"),
   },
   (table) => [
-    index("leads_state_idx").on(table.state),
-    index("leads_created_idx").on(table.createdAt),
-    index("leads_email_idx").on(table.email),
+    index("solar_leads_state_idx").on(table.state),
+    index("solar_leads_created_idx").on(table.createdAt),
+    index("solar_leads_email_idx").on(table.email),
   ],
 );
 
 /**
  * Registro de consentimiento.
  *
- * Tabla aparte y solo-anadir: un consentimiento no se edita. Retirarlo crea
- * una fila nueva con `withdrawnAt`, de modo que el historial completo queda
- * reconstruible.
+ * Tabla aparte y solo-anadir: un consentimiento no se edita. Retirarlo marca
+ * `withdrawnAt`, de modo que el historial completo queda reconstruible.
  */
-export const consents = sqliteTable(
-  "consents",
+export const consents = pgTable(
+  "solar_consents",
   {
     id: text("id").primaryKey(),
     leadId: text("lead_id")
       .notNull()
       .references(() => leads.id, { onDelete: "cascade" }),
 
-    grantedAt: integer("granted_at", { mode: "timestamp_ms" }).notNull(),
-    withdrawnAt: integer("withdrawn_at", { mode: "timestamp_ms" }),
+    grantedAt: timestamp("granted_at", { withTimezone: true }).notNull(),
+    withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
 
     /** Identificador de la version mostrada. */
     version: text("version").notNull(),
@@ -79,7 +78,7 @@ export const consents = sqliteTable(
     purpose: text("purpose").notNull(),
     channel: text("channel").notNull(),
   },
-  (table) => [index("consents_lead_idx").on(table.leadId)],
+  (table) => [index("solar_consents_lead_idx").on(table.leadId)],
 );
 
 /**
@@ -92,26 +91,26 @@ export const consents = sqliteTable(
  * Las columnas sueltas duplican datos que ya estan dentro del JSON, a
  * proposito: son las que se ordenan y filtran en el listado del pipeline.
  */
-export const studies = sqliteTable(
-  "studies",
+export const studies = pgTable(
+  "solar_studies",
   {
     id: text("id").primaryKey(),
     leadId: text("lead_id")
       .notNull()
       .references(() => leads.id, { onDelete: "cascade" }),
-    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
 
-    recommendedKWp: real("recommended_kwp").notNull(),
-    annualProductionKWh: real("annual_production_kwh").notNull(),
-    investmentEUR: real("investment_eur").notNull(),
-    firstYearSavingsEUR: real("first_year_savings_eur").notNull(),
-    paybackYears: real("payback_years"),
+    recommendedKWp: doublePrecision("recommended_kwp").notNull(),
+    annualProductionKWh: doublePrecision("annual_production_kwh").notNull(),
+    investmentEUR: doublePrecision("investment_eur").notNull(),
+    firstYearSavingsEUR: doublePrecision("first_year_savings_eur").notNull(),
+    paybackYears: doublePrecision("payback_years"),
     confidence: text("confidence", { enum: ["alta", "media", "baja"] }).notNull(),
 
     /** `PreliminaryStudy` serializado. */
-    payload: text("payload", { mode: "json" }).notNull(),
+    payload: jsonb("payload").notNull(),
   },
-  (table) => [index("studies_lead_idx").on(table.leadId)],
+  (table) => [index("solar_studies_lead_idx").on(table.leadId)],
 );
 
 export type LeadRow = typeof leads.$inferSelect;

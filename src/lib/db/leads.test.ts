@@ -1,28 +1,25 @@
-import { readFileSync, readdirSync, rmSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { createClient } from "@libsql/client";
+import { PGlite } from "@electric-sql/pglite";
+import { drizzle } from "drizzle-orm/pglite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { PreliminaryStudy } from "../solar/types";
 
+import { __setTestDatabase, type Database } from "./client";
+import * as schema from "./schema";
+
 /**
- * Las pruebas corren contra una base temporal propia, creada aplicando las
- * mismas migraciones que van a produccion. Apuntar a la base de desarrollo
- * seria mas rapido y acabaria borrando datos de alguien.
+ * Las pruebas corren contra PGlite: Postgres de verdad compilado a
+ * WebAssembly, en memoria. Mismas reglas de tipos, mismas transacciones y
+ * mismo comportamiento del JSONB que en produccion, sin levantar un servidor
+ * ni depender de la red.
  *
- * `DATABASE_URL` se fija antes de importar el modulo porque el cliente la lee
- * al cargarse, de ahi la importacion dinamica.
+ * El esquema se crea aplicando las mismas migraciones que van a produccion,
+ * no con un `CREATE TABLE` escrito aparte que podria divergir.
  */
-/**
- * Nombre unico por ejecucion. En Windows el fichero queda bloqueado mientras
- * haya una conexion abierta, asi que un borrado puede fallar; reutilizar el
- * mismo nombre haria que la ejecucion siguiente encontrase las tablas ya
- * creadas y fallase al migrar. Con un nombre nuevo cada vez, el arranque es
- * siempre limpio aunque la limpieza anterior no haya podido completarse.
- */
-const TEST_DB = join(process.cwd(), `.tmp-leads-${process.pid}-${Date.now()}.db`);
-process.env.DATABASE_URL = `file:${TEST_DB}`;
+let pg: PGlite;
 
 type LeadsModule = typeof import("./leads");
 let repo: LeadsModule;
@@ -88,42 +85,34 @@ const captura = (overrides: Record<string, unknown> = {}) => ({
 });
 
 beforeAll(async () => {
-  // Se aplican todas las migraciones en orden, no una clavada a mano: en
-  // cuanto se genere la siguiente, la base de prueba la recoge sola.
+  pg = new PGlite();
+  const testDb = drizzle(pg, { schema });
+
+  // El tipo de PGlite y el de postgres-js no coinciden, aunque la API de
+  // consulta que usa el repositorio es identica. El casting queda acotado
+  // aqui y no se filtra al codigo de produccion.
+  __setTestDatabase(testDb as unknown as Database);
+
   const dir = join(process.cwd(), "drizzle");
   const migraciones = readdirSync(dir)
     .filter((f) => f.endsWith(".sql"))
     .sort();
   expect(migraciones.length).toBeGreaterThan(0);
 
-  const client = createClient({ url: `file:${TEST_DB}` });
   for (const fichero of migraciones) {
     const sql = readFileSync(join(dir, fichero), "utf8");
     for (const statement of sql.split("--> statement-breakpoint")) {
       const trimmed = statement.trim();
-      if (trimmed) await client.execute(trimmed);
+      if (trimmed) await pg.exec(trimmed);
     }
   }
-  client.close();
 
   repo = await import("./leads");
 });
 
-afterAll(() => {
-  // Cerrar la conexion que el modulo cachea en el ambito global; si no, el
-  // fichero sigue bloqueado y no hay manera de borrarlo.
-  const cached = globalThis as unknown as { __solarpilotClient?: { close(): void } };
-  cached.__solarpilotClient?.close();
-  delete cached.__solarpilotClient;
-
-  for (const suffix of ["", "-shm", "-wal"]) {
-    try {
-      rmSync(`${TEST_DB}${suffix}`, { force: true });
-    } catch {
-      // Un temporal que sobrevive no invalida la prueba. Esta ignorado en git
-      // y la ejecucion siguiente usa otro nombre.
-    }
-  }
+afterAll(async () => {
+  __setTestDatabase(undefined);
+  await pg?.close();
 });
 
 describe("captureLead", () => {
