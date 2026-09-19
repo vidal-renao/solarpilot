@@ -8,12 +8,18 @@ Lo que lo separa de cualquier otro calculador solar es que **también dice cuán
 
 > **Proyecto de demostración.** La empresa no existe y los precios son de un catálogo ficticio. Los datos de radiación sí son reales: los sirve PVGIS, el servicio del Joint Research Centre de la Comisión Europea.
 
-<!--
-CAPTURAS PENDIENTES. Añadir aquí, por este orden:
-  docs/calculador.png  — el resultado con el arco solar
-  docs/propuesta.png   — la propuesta imprimible
-  docs/pipeline.png    — la vista interna
--->
+![El calculador: preestudio completo con arco solar, desglose del ahorro, amortización e incentivos](docs/calculador.png)
+
+<table>
+<tr>
+<td width="50%"><img src="docs/propuesta.png" alt="Propuesta imprimible sobre fondo claro"></td>
+<td width="50%"><img src="docs/pipeline.png" alt="Vista interna del pipeline comercial"></td>
+</tr>
+<tr>
+<td align="center"><em>La propuesta, en superficie de papel</em></td>
+<td align="center"><em>El pipeline interno</em></td>
+</tr>
+</table>
 
 ---
 
@@ -138,6 +144,13 @@ El sembrado llama a PVGIS y a Nominatim de verdad, así que tarda unos segundos 
 | `npm run lint` | ESLint |
 | `npm run build` | Compilación de producción |
 | `npm run db:generate` | Genera migración tras cambiar el esquema |
+| `npm run capture:demo` | Regenera las capturas del README |
+
+### Las capturas se generan solas
+
+`npm run capture:demo` levanta una base efímera con PGlite, arranca el servidor apuntando a ella, recorre la aplicación con un navegador real y guarda los tres PNG. No necesita credenciales, así que cualquiera que clone el repositorio puede regenerarlas.
+
+Corre contra una base aislada **a propósito**. Las capturas salían antes de la base de desarrollo, y una prueba hecha sobre el despliegue real dejó ahí el nombre, el teléfono y el domicilio de una persona: acabó dentro de una imagen a punto de subirse a un repositorio público. Aislar la captura elimina esa posibilidad de raíz en lugar de confiar en que nadie se despiste. El script lleva además una comprobación que se niega a capturar si encuentra un lead que no sea del sembrado.
 
 ### Variables de entorno
 

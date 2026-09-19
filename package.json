@@ -14,7 +14,9 @@
     "test:watch": "vitest",
     "db:seed": "tsx scripts/seed.ts",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "capture": "tsx scripts/capture.ts",
+    "capture:demo": "tsx scripts/capture-demo.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.38.3",
@@ -26,6 +28,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
+    "@electric-sql/pglite-socket": "^0.2.11",
     "@tailwindcss/postcss": "^4.0.0",
     "@types/node": "^22.10.6",
     "@types/react": "^19.0.7",
@@ -33,6 +36,7 @@
     "drizzle-kit": "^0.30.2",
     "eslint": "^9.39.5",
     "eslint-config-next": "^15.5.25",
+    "playwright": "^1.63.0",
     "tailwindcss": "^4.0.0",
     "tsx": "^4.23.13",
     "typescript": "^5.7.3",
