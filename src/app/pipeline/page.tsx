@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { LeadStateControl } from "@/components/LeadStateControl";
 import { ConfidenceDots } from "@/components/StudyResult";
+import { tryQuery } from "@/lib/db/availability";
 import { countByState, listLeads } from "@/lib/db/leads";
 import { LEAD_STATES, leadStateLabel } from "@/lib/lead-states";
 
@@ -11,7 +12,16 @@ export const dynamic = "force-dynamic";
 const eur = (n: number) => n.toLocaleString("es-ES", { maximumFractionDigits: 0 });
 
 export default async function Pipeline() {
-  const [leads, counts] = await Promise.all([listLeads(), countByState()]);
+  const resultado = await tryQuery(async () => {
+    const [leads, counts] = await Promise.all([listLeads(), countByState()]);
+    return { leads, counts };
+  });
+
+  if (resultado.status !== "ok") {
+    return <SinDatos motivo={resultado} />;
+  }
+
+  const { leads, counts } = resultado.data;
 
   return (
     <div className="min-h-dvh">
@@ -111,6 +121,64 @@ export default async function Pipeline() {
             </table>
           </div>
         )}
+      </main>
+    </div>
+  );
+}
+
+/**
+ * Estado explicito para cuando el pipeline no puede leer la base.
+ *
+ * Un despliegue sin `DATABASE_URL` es un escenario real y previsible: el
+ * calculador funciona sin base, y solo la parte comercial la necesita.
+ */
+function SinDatos({
+  motivo,
+}: {
+  motivo: { status: "sin_configurar" } | { status: "error"; message: string };
+}) {
+  const sinConfigurar = motivo.status === "sin_configurar";
+
+  return (
+    <div className="min-h-dvh">
+      <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-6 sm:px-8">
+        <Link href="/" className="font-display text-sm font-medium tracking-tight">
+          Solar<span className="text-sun">Pilot</span>
+        </Link>
+      </header>
+
+      <main className="mx-auto max-w-2xl px-5 pt-16 sm:px-8">
+        <h1 className="font-display text-3xl font-medium tracking-tight">
+          {sinConfigurar ? "Falta la base de datos" : "La base de datos no responde"}
+        </h1>
+
+        <p className="mt-4 leading-relaxed text-mist">
+          {sinConfigurar ? (
+            <>
+              Este despliegue no tiene <code className="tabular text-sun">DATABASE_URL</code>{" "}
+              configurada, así que no hay dónde guardar ni de dónde leer los leads. El calculador
+              funciona igualmente: no necesita base de datos hasta que guardas un preestudio.
+            </>
+          ) : (
+            <>
+              La configuración existe, pero la conexión ha fallado. No es un problema de datos que
+              falten: es que no se ha podido llegar a ellos.
+            </>
+          )}
+        </p>
+
+        {!sinConfigurar && (
+          <p className="mt-4 border-l-2 border-line pl-4 font-mono text-xs leading-relaxed text-mist-dim">
+            {motivo.message}
+          </p>
+        )}
+
+        <Link
+          href="/"
+          className="mt-8 inline-block rounded bg-sun px-5 py-2.5 font-display font-medium text-ink transition-opacity hover:opacity-90"
+        >
+          Ir al calculador
+        </Link>
       </main>
     </div>
   );

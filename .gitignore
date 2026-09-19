@@ -13,3 +13,5 @@ solarpilot.db
 solarpilot.db-*
 .tmp-*.db
 .tmp-*.db-*
+
+.vercel

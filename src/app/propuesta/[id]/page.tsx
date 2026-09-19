@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { PrintButton } from "@/components/PrintButton";
 import { SolarYear } from "@/components/SolarYear";
+import { tryQuery } from "@/lib/db/availability";
 import { getLead } from "@/lib/db/leads";
 import type { PreliminaryStudy } from "@/lib/solar/types";
 
@@ -28,10 +29,14 @@ function Cifra({ valor, unidad, etiqueta }: { valor: string; unidad: string; eti
 
 export default async function Propuesta({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const record = await getLead(id);
-  if (!record?.study) notFound();
+  const resultado = await tryQuery(() => getLead(id));
 
-  const { lead, study: row } = record;
+  // Sin base de datos no se puede afirmar que la propuesta no exista, solo
+  // que no se puede comprobar. Un 404 seria mentir sobre lo que sabemos.
+  if (resultado.status !== "ok") notFound();
+  if (!resultado.data?.study) notFound();
+
+  const { lead, study: row } = resultado.data;
   const study = row.payload as PreliminaryStudy;
   const s = study.sizing.value;
   const e = study.energy.value;
