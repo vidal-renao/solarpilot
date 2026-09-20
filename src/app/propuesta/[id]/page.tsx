@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -9,6 +10,20 @@ import type { PreliminaryStudy } from "@/lib/solar/types";
 
 /** Validez de la oferta. Una propuesta sin caducidad es un compromiso abierto. */
 const VALIDITY_DAYS = 30;
+
+/**
+ * Titulo propio, deliberadamente sin el nombre del cliente.
+ *
+ * El titulo de una pagina acaba en la pestana, en el historial del navegador
+ * y en cualquier captura que alguien haga. Un dato personal no tiene por que
+ * estar ahi para que la pagina se identifique bien.
+ */
+export const metadata: Metadata = {
+  title: "Propuesta de instalación fotovoltaica — SolarPilot",
+  description:
+    "Propuesta preliminar de autoconsumo: potencia, producción estimada, condiciones económicas y lo que queda por comprobar.",
+  robots: { index: false, follow: false },
+};
 
 const eur = (n: number) => n.toLocaleString("es-ES", { maximumFractionDigits: 0 });
 const kwh = (n: number) => n.toLocaleString("es-ES", { maximumFractionDigits: 0 });
