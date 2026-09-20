@@ -194,3 +194,10 @@ Un proyecto honesto dice dónde termina.
 **Las tablas van prefijadas con `solar_`** porque la base puede compartirse con otras aplicaciones. `drizzle-kit` está configurado con `tablesFilter` para que solo mire lo suyo: sin eso, propondría borrar tablas ajenas en la primera migración.
 
 **El PDF se genera con el diálogo de impresión del navegador.** La hoja de estilos produce un documento correcto y evita arrastrar una librería de maquetación. El día que haya que enviar el PDF por correo sin intervención humana, habrá que renderizarlo en servidor.
+
+---
+
+## Autor
+
+**Vidal Renao Lopelo** · Basilea, Suiza
+[github.com/vidal-renao](https://github.com/vidal-renao)

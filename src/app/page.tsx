@@ -109,11 +109,24 @@ export default function Home() {
       </main>
 
       <footer className="border-t border-line">
-        <p className="mx-auto max-w-5xl px-5 py-6 text-xs leading-relaxed text-mist-dim sm:px-8">
-          SolarPilot es un proyecto de demostración. La empresa no existe, los precios son de
-          catálogo ficticio y ningún dato introducido aquí se usa con fines comerciales. Los
-          cálculos de radiación sí son reales, servidos por PVGIS (Comisión Europea).
-        </p>
+        <div className="mx-auto flex max-w-5xl flex-col gap-4 px-5 py-6 sm:flex-row sm:items-end sm:justify-between sm:px-8">
+          <p className="max-w-2xl text-xs leading-relaxed text-mist-dim">
+            SolarPilot es un proyecto de demostración. La empresa no existe, los precios son de
+            catálogo ficticio y ningún dato introducido aquí se usa con fines comerciales. Los
+            cálculos de radiación sí son reales, servidos por PVGIS (Comisión Europea).
+          </p>
+          <p className="shrink-0 text-xs text-mist-dim">
+            Vidal Renao Lopelo ·{" "}
+            <a
+              href="https://github.com/vidal-renao/solarpilot"
+              target="_blank"
+              rel="noreferrer"
+              className="underline decoration-line underline-offset-2 transition-colors hover:text-sun"
+            >
+              código
+            </a>
+          </p>
+        </div>
       </footer>
     </div>
   );
