@@ -185,6 +185,9 @@ async function main() {
     locale: "es-ES",
     // Sin animaciones el resultado es reproducible entre ejecuciones.
     reducedMotion: "reduce",
+    // Explicito: Playwright pide tema claro por defecto, y las capturas del
+    // README van en oscuro, que es la identidad del proyecto.
+    colorScheme: "dark",
   });
   const page = await context.newPage();
 

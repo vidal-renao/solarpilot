@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { LeadStateControl } from "@/components/LeadStateControl";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { ConfidenceDots } from "@/components/StudyResult";
 import { tryQuery } from "@/lib/db/availability";
 import { countByState, listLeads } from "@/lib/db/leads";
@@ -29,9 +30,12 @@ export default async function Pipeline() {
         <Link href="/" className="font-display text-sm font-medium tracking-tight">
           Solar<span className="text-sun">Pilot</span>
         </Link>
-        <span className="rounded-full border border-line px-3 py-1 text-[11px] text-mist-dim">
-          Vista interna
-        </span>
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+          <span className="rounded-full border border-line px-3 py-1 text-[11px] text-mist-dim">
+            Vista interna
+          </span>
+        </div>
       </header>
 
       <main className="mx-auto max-w-6xl px-5 pb-24 sm:px-8">

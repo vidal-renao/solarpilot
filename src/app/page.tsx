@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { StudyForm } from "@/components/StudyForm";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function Home() {
   return (
@@ -10,6 +11,7 @@ export default function Home() {
           Solar<span className="text-sun">Pilot</span>
         </span>
         <nav className="flex items-center gap-4">
+          <ThemeToggle />
           <Link
             href="/proceso"
             className="text-xs text-mist-dim transition-colors hover:text-snow"

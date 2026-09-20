@@ -11,7 +11,7 @@
   /* Texto */
   --color-snow: #f4f6fb;
   --color-mist: #a8b2cc;
-  --color-mist-dim: #6b7796;
+  --color-mist-dim: #78849f;
 
   /* Unico acento. Reservado a valores de energia medidos. */
   --color-sun: #f5b544;
@@ -20,6 +20,60 @@
   --font-display: var(--font-space-grotesk), system-ui, sans-serif;
   --font-sans: var(--font-plex-sans), system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+}
+
+/*
+ * Tema claro.
+ *
+ * Los tokens del bloque `@theme` son los del tema oscuro, que es el de
+ * partida. Aqui se redefinen para claro: los mismos nombres, otros valores.
+ * Ningun componente cambia, porque ninguno conoce un color literal.
+ *
+ * Se aplica en dos situaciones: cuando el sistema pide claro y el usuario no
+ * ha elegido otra cosa, y cuando el usuario lo elige explicitamente. El
+ * `:not([data-theme="dark"])` evita que la preferencia del sistema pise una
+ * eleccion manual.
+ *
+ * El ambar es mas oscuro que en el tema nocturno. No es capricho: el mismo
+ * #f5b544 sobre fondo claro da un contraste de 1,9 a 1 y resulta ilegible en
+ * texto pequeno. El valor elegido pasa el umbral AA.
+ */
+:root {
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --color-ink: #f7f8fc;
+    --color-ink-raised: #ffffff;
+    --color-ink-sunken: #edf0f7;
+    --color-line: #dce1ec;
+    --color-line-bright: #aeb7ca;
+    --color-snow: #131a2b;
+    --color-mist: #45506b;
+    --color-mist-dim: #656f8c;
+    --color-sun: #9a6206;
+    --color-sun-dim: #d8b87e;
+  }
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --color-ink: #f7f8fc;
+  --color-ink-raised: #ffffff;
+  --color-ink-sunken: #edf0f7;
+  --color-line: #dce1ec;
+  --color-line-bright: #aeb7ca;
+  --color-snow: #131a2b;
+  --color-mist: #45506b;
+  --color-mist-dim: #656f8c;
+  --color-sun: #9a6206;
+  --color-sun-dim: #d8b87e;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 @layer base {
@@ -107,8 +161,8 @@
   --color-line-bright: #b9c2d6;
   --color-snow: #131a2b;
   --color-mist: #45506b;
-  --color-mist-dim: #6e7997;
-  --color-sun: #b57310;
+  --color-mist-dim: #656f8c;
+  --color-sun: #9a6206;
   --color-sun-dim: #e0b978;
 
   background-color: var(--color-ink);

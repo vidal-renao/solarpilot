@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { ProcessTimeline } from "@/components/ProcessTimeline";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const metadata: Metadata = {
   title: "Del preestudio al primer kWh — SolarPilot",
@@ -17,6 +18,7 @@ export default function Proceso() {
           Solar<span className="text-sun">Pilot</span>
         </Link>
         <nav className="flex items-center gap-4">
+          <ThemeToggle />
           <Link
             href="/pipeline"
             className="text-xs text-mist-dim transition-colors hover:text-snow"
