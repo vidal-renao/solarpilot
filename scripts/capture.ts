@@ -1,4 +1,5 @@
-/**
+console.log("
+Capturas generadas en docs/.");/**
  * Capturas para el README.
  *
  * Se generan con el navegador, no a mano: asi se pueden regenerar cuando
@@ -26,6 +27,23 @@ async function esperarRed(page: Page) {
   await page.waitForLoadState("networkidle");
   // Las barras del arco solar entran escalonadas; se deja terminar.
   await page.waitForTimeout(1200);
+}
+
+/**
+ * Navega tolerando la compilacion bajo demanda.
+ *
+ * En desarrollo Next compila cada ruta la primera vez que se pide, y una
+ * navegacion que llega antes de que termine se aborta. Se calienta la ruta
+ * con una peticion normal y se reintenta una vez.
+ */
+async function irA(page: Page, url: string) {
+  await fetch(url).catch(() => {});
+  try {
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60_000 });
+  } catch {
+    await page.waitForTimeout(2000);
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60_000 });
+  }
 }
 
 /** El indicador de desarrollo de Next no pinta nada en una captura. */
@@ -91,7 +109,7 @@ async function escribir(page: Page, etiqueta: string | RegExp, texto: string) {
 }
 
 async function capturarCalculador(page: Page) {
-  await page.goto(BASE, { waitUntil: "domcontentloaded" });
+  await irA(page, BASE);
   await ocultarHerramientasDeDesarrollo(page);
 
   await escribir(page, "Direccion", "Avenida de la Constitucion 20, Sevilla");
@@ -114,8 +132,18 @@ async function capturarCalculador(page: Page) {
   console.log("  docs/calculador.png");
 }
 
+async function capturarProceso(page: Page) {
+  await irA(page, `${BASE}/proceso`);
+  await ocultarHerramientasDeDesarrollo(page);
+  await page.getByRole("heading", { name: /del preestudio/i }).waitFor();
+  await esperarRed(page);
+
+  await page.screenshot({ path: join(OUT, "proceso.png"), fullPage: true });
+  console.log("  docs/proceso.png");
+}
+
 async function capturarPipeline(page: Page) {
-  await page.goto(`${BASE}/pipeline`, { waitUntil: "domcontentloaded" });
+  await irA(page, `${BASE}/pipeline`);
   await ocultarHerramientasDeDesarrollo(page);
   await page.getByRole("heading", { name: "Pipeline" }).waitFor();
   await exigirSoloDatosFicticios(page);
@@ -126,7 +154,7 @@ async function capturarPipeline(page: Page) {
 }
 
 async function capturarPropuesta(page: Page) {
-  await page.goto(`${BASE}/pipeline`, { waitUntil: "domcontentloaded" });
+  await irA(page, `${BASE}/pipeline`);
 
   await ocultarHerramientasDeDesarrollo(page);
   await page.getByRole("heading", { name: "Pipeline" }).waitFor();
@@ -164,9 +192,10 @@ async function main() {
   console.log(`Capturando desde ${BASE}\n`);
   try {
     await capturarCalculador(page);
+    await capturarProceso(page);
     await capturarPipeline(page);
     await capturarPropuesta(page);
-    console.log("\nTres capturas generadas en docs/.");
+    console.log("\nCapturas generadas en docs/.");
   } catch (error) {
     // Una captura que falla deja el estado a la vista en lugar de solo el
     // mensaje: casi siempre el motivo esta en la pantalla.

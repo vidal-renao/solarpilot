@@ -66,6 +66,18 @@ Las ayudas cambian el retorno de forma material, y los calculadores suelen ignor
 
 Una ayuda no está concedida hasta que la concede quien puede, y el retorno no debería suponer lo contrario.
 
+### Y qué pasa después
+
+Un calculador que entrega una cifra y se calla deja al cliente con un número y sin nada que hacer con él. La pregunta siguiente —*¿y ahora qué?*— es la que todo el mundo se hace y casi nadie responde.
+
+[El proceso](https://solarpilot-psi.vercel.app/proceso) recorre los once pasos desde el preestudio hasta que la instalación produce: visita técnica, memoria o proyecto según potencia, trámite municipal, instalación, certificado eléctrico, registro autonómico, punto de conexión y contrato de compensación. Cada uno declara quién lo ejecuta, cuánto tarda, qué documentos exige y qué suele atascarlo, con la fuente de cada plazo citada y fechada.
+
+El dato que ordena la página: **de las 23 semanas del peor caso, el 72 % no lo controla ninguna instaladora.** Administración, distribuidora y comercializadora marcan ese tiempo. El paso más lento —la solicitud del punto de conexión— puede irse a dos meses. Quien promete una fecha cerrada promete algo que no está en su mano.
+
+Los pasos se modelan como datos tipados, no como texto en una página, y hay pruebas que comprueban que ninguno se queda sin responsable, sin riesgos declarados ni con plazos incoherentes. Un plazo escrito a mano en un párrafo envejece sin que nadie se entere.
+
+![El proceso completo, con plazos y responsables](docs/proceso.png)
+
 ---
 
 ## Qué es real y qué está simulado
@@ -76,7 +88,7 @@ Un portfolio que no distingue esto no vale nada.
 |---|---|
 | Radiación y producción | **Real.** PVGIS v5.2, verificado contra el servicio en vivo |
 | Geocodificación | **Real.** Nominatim (OpenStreetMap) |
-| Motor de cálculo | **Real.** Dimensionado, balance, economía e incentivos, con 95 pruebas |
+| Motor de cálculo | **Real.** Dimensionado, balance, economía e incentivos, con 116 pruebas |
 | Base de datos | **Real.** Postgres en Supabase, con migraciones versionadas |
 | Precios de instalación | **Ficticios.** Catálogo de demostración, tramos plausibles |
 | Datos de cubierta | **Apagado.** Google Solar está implementado pero sin clave |
@@ -99,12 +111,14 @@ src/
 │   │   ├── geocode.ts      Nominatim
 │   │   ├── roof.ts         Fuentes de cubierta con respaldo ordenado
 │   │   ├── engine.ts       Dimensionado, balance y economía. Funciones puras
-│   │   └── incentives.ts   Ayudas, con ámbito, requisitos y fuente citada
+│   │   ├── incentives.ts   Ayudas, con ámbito, requisitos y fuente citada
+│   │   └── process.ts      Los once pasos hasta la puesta en marcha
 │   ├── db/                 Esquema Postgres, cliente y repositorio
 │   ├── consent.ts          Consentimiento versionado
 │   └── cache.ts            Memoria corta y tiempos máximos de red
 └── app/
     ├── page.tsx            Calculador
+    ├── proceso/            Del preestudio al primer kWh
     ├── pipeline/           Vista interna
     ├── propuesta/[id]/     Documento imprimible
     └── actions.ts          Acciones de servidor
@@ -139,7 +153,7 @@ El sembrado llama a PVGIS y a Nominatim de verdad, así que tarda unos segundos 
 | Script | Qué hace |
 |---|---|
 | `npm run dev` | Servidor de desarrollo |
-| `npm test` | 95 pruebas |
+| `npm test` | 116 pruebas |
 | `npm run typecheck` | TypeScript en modo estricto |
 | `npm run lint` | ESLint |
 | `npm run build` | Compilación de producción |

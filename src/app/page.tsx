@@ -11,6 +11,12 @@ export default function Home() {
         </span>
         <nav className="flex items-center gap-4">
           <Link
+            href="/proceso"
+            className="text-xs text-mist-dim transition-colors hover:text-snow"
+          >
+            El proceso
+          </Link>
+          <Link
             href="/pipeline"
             className="text-xs text-mist-dim transition-colors hover:text-snow"
           >
@@ -68,6 +74,36 @@ export default function Home() {
                 esto es un preestudio y no un proyecto.
               </p>
             </div>
+          </div>
+        </section>
+
+        {/*
+          Cierra la pregunta que deja cualquier calculador sin responder. Un
+          numero de ahorro sin lo que viene detras no sirve para decidir.
+        */}
+        <section className="mt-20 rounded-lg border border-line bg-ink-raised p-6 sm:p-8">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+            <div className="max-w-xl">
+              <h2 className="font-display text-2xl font-medium tracking-tight">
+                ¿Y después del preestudio?
+              </h2>
+              <p className="mt-3 leading-relaxed text-mist">
+                Visita técnica, proyecto, licencia municipal, instalación, certificado, registro en
+                tu comunidad, punto de conexión y contrato de compensación. Once pasos, y más de la
+                mitad del plazo no lo controla ninguna instaladora.
+              </p>
+              <p className="mt-3 text-sm leading-relaxed text-mist-dim">
+                Están todos detallados: quién ejecuta cada uno, cuánto tarda, qué documentos exige y
+                qué suele atascarlo.
+              </p>
+            </div>
+
+            <Link
+              href="/proceso"
+              className="shrink-0 rounded border border-line px-5 py-2.5 font-display text-sm font-medium transition-colors hover:border-sun hover:text-sun"
+            >
+              Ver el proceso completo
+            </Link>
           </div>
         </section>
       </main>

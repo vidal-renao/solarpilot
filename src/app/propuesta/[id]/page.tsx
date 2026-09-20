@@ -176,6 +176,32 @@ export default async function Propuesta({ params }: { params: Promise<{ id: stri
           </ul>
         </section>
 
+        {/* Una propuesta que no dice cual es el paso siguiente deja al cliente
+            con un numero y sin nada que hacer con el. */}
+        <section className="border-b border-line py-7">
+          <h2 className="mb-5 font-display text-xs font-medium uppercase tracking-[0.18em] text-mist-dim">
+            El siguiente paso
+          </h2>
+          <p className="max-w-prose leading-relaxed">
+            Una <strong className="font-medium">visita técnica</strong>. Es donde se mide la
+            cubierta, se evalúan sombras, estructura y cuadro eléctrico, y donde estas cifras se
+            convierten en un presupuesto cerrado.
+          </p>
+          <p className="mt-3 max-w-prose text-sm leading-relaxed text-mist">
+            A partir de ahí quedan el proyecto o memoria técnica, el trámite municipal, la
+            instalación, el certificado eléctrico, el registro en la comunidad autónoma y —si hay
+            vertido de excedentes— el punto de conexión y el contrato de compensación.
+          </p>
+          <p className="no-print mt-4 text-sm">
+            <Link
+              href="/proceso"
+              className="underline decoration-line underline-offset-4 transition-colors hover:text-sun"
+            >
+              Ver el recorrido completo con plazos
+            </Link>
+          </p>
+        </section>
+
         <footer className="py-7">
           <p className="text-xs leading-relaxed text-mist-dim">{study.disclaimer}</p>
           <p className="mt-4 text-xs leading-relaxed text-mist-dim">

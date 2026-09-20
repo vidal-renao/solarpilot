@@ -8,9 +8,29 @@
  * Uso: npm run capture:demo
  */
 
-import { spawn, type ChildProcess } from "node:child_process";
+import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 
 import { startDemoDatabase } from "./demo-db";
+
+/**
+ * Mata el proceso y todo lo que cuelgue de el.
+ *
+ * En Windows, `next dev` se lanza a traves de una shell y `kill()` solo
+ * termina el envoltorio: el servidor real sobrevive, deja el puerto ocupado y
+ * la ejecucion siguiente no arranca. Hay que matar el arbol entero.
+ */
+function matarArbol(proceso: ChildProcess | undefined) {
+  if (!proceso?.pid) return;
+  if (process.platform === "win32") {
+    spawnSync("taskkill", ["/pid", String(proceso.pid), "/f", "/t"], { stdio: "ignore" });
+  } else {
+    try {
+      process.kill(-proceso.pid, "SIGTERM");
+    } catch {
+      proceso.kill("SIGTERM");
+    }
+  }
+}
 
 const PORT = 3100;
 const BASE = `http://localhost:${PORT}`;
@@ -43,6 +63,7 @@ async function main() {
       env: { ...process.env, DATABASE_URL: db.url },
       stdio: "ignore",
       shell: process.platform === "win32",
+      detached: process.platform !== "win32",
     });
 
     await esperarServidor();
@@ -60,7 +81,7 @@ async function main() {
       );
     });
   } finally {
-    next?.kill();
+    matarArbol(next);
     await db.stop();
     console.log("\nBase efimera y servidor apagados.");
   }

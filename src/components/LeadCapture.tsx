@@ -45,15 +45,24 @@ export function LeadCapture({
       <section className="fade-up mt-6 rounded-lg border border-sun/40 bg-ink-raised p-6 sm:p-8">
         <h2 className="font-display text-xl font-medium">Preestudio guardado</h2>
         <p className="mt-2 max-w-prose leading-relaxed text-mist">
-          Te hemos preparado la propuesta con estos numeros. Un tecnico la revisara antes de que
-          nadie te llame, porque lo que ves es una estimacion y no un proyecto.
+          Te hemos preparado la propuesta con estos numeros. El siguiente paso es una visita
+          tecnica: es donde se comprueba la cubierta, las sombras y el cuadro electrico, y donde
+          esta estimacion se convierte en un presupuesto en firme o se cae.
         </p>
-        <Link
-          href={`/propuesta/${state.leadId}`}
-          className="mt-5 inline-block rounded bg-sun px-5 py-2.5 font-display font-medium text-ink transition-opacity hover:opacity-90"
-        >
-          Ver la propuesta
-        </Link>
+        <div className="mt-5 flex flex-wrap gap-3">
+          <Link
+            href={`/propuesta/${state.leadId}`}
+            className="rounded bg-sun px-5 py-2.5 font-display font-medium text-ink transition-opacity hover:opacity-90"
+          >
+            Ver la propuesta
+          </Link>
+          <Link
+            href="/proceso"
+            className="rounded border border-line px-5 py-2.5 font-display text-sm font-medium transition-colors hover:border-sun hover:text-sun"
+          >
+            Qué viene después
+          </Link>
+        </div>
       </section>
     );
   }
