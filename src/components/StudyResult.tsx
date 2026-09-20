@@ -1,8 +1,10 @@
+import type { ScenarioComparison } from "@/app/actions";
 import type { IncentiveEstimate } from "@/lib/solar/incentives";
 import type { RoofInsight } from "@/lib/solar/roof";
 import type { Confidence, PreliminaryStudy } from "@/lib/solar/types";
 
 import { AmortizationChart } from "./AmortizationChart";
+import { BatteryComparison } from "./BatteryComparison";
 import { SolarYear } from "./SolarYear";
 
 const NIVEL: Record<Confidence, { puntos: number; texto: string }> = {
@@ -163,10 +165,12 @@ export function StudyResult({
   study,
   roof,
   addressPrecise,
+  comparison,
 }: {
   study: PreliminaryStudy;
   roof: RoofInsight;
   addressPrecise: boolean;
+  comparison: ScenarioComparison;
 }) {
   const s = study.sizing.value;
   const e = study.energy.value;
@@ -307,6 +311,22 @@ export function StudyResult({
             unico que no exige adivinar el futuro: cualquier subida real acorta el plazo.
           </p>
         </div>
+      </Panel>
+
+      <Panel
+        titulo="¿Compensa la bateria?"
+        aside={
+          <span className="text-xs text-mist-dim">
+            los dos escenarios, calculados a la vez
+          </span>
+        }
+      >
+        <BatteryComparison
+          sinBateria={comparison.sinBateria}
+          conBateria={comparison.conBateria}
+          verdict={comparison.verdict}
+          actual={study.input.withBattery ?? false}
+        />
       </Panel>
 
       <Panel

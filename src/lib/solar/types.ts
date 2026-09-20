@@ -171,6 +171,8 @@ export interface Economics {
   investmentEUR: number;
   /** Lo que realmente desembolsa el cliente tras los incentivos aplicables. */
   netInvestmentEUR: number;
+  /** Capacidad de almacenamiento dimensionada. 0 si no lleva bateria. */
+  batteryKWh: number;
 
   firstYearSavingsEUR: number;
   /** Parte del ahorro que viene de dejar de comprar energia. */

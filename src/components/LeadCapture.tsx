@@ -52,7 +52,7 @@ export function LeadCapture({
         <div className="mt-5 flex flex-wrap gap-3">
           <Link
             href={`/propuesta/${state.leadId}`}
-            className="rounded bg-sun px-5 py-2.5 font-display font-medium text-ink transition-opacity hover:opacity-90"
+            className="rounded bg-sun px-5 py-2.5 font-display font-medium text-ink transition-colors hover:bg-sun-hover"
           >
             Ver la propuesta
           </Link>
@@ -159,7 +159,7 @@ export function LeadCapture({
         <button
           type="submit"
           disabled={pending}
-          className="mt-5 rounded bg-sun px-6 py-2.5 font-display font-medium text-ink transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="mt-5 rounded bg-sun px-6 py-2.5 font-display font-medium text-ink transition-colors hover:bg-sun-hover disabled:opacity-50"
         >
           {pending ? "Guardando…" : "Guardar y ver propuesta"}
         </button>

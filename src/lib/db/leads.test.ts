@@ -59,6 +59,7 @@ function estudioFalso(overrides: Partial<PreliminaryStudy> = {}): PreliminaryStu
       value: {
         investmentEUR: 3937.5,
         netInvestmentEUR: 3937.5,
+        batteryKWh: 0,
         firstYearSavingsEUR: 547.9,
         selfConsumptionSavingsEUR: 463.5,
         compensationEUR: 84.4,

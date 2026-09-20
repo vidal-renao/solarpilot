@@ -64,7 +64,7 @@ export default async function Pipeline() {
             </p>
             <Link
               href="/"
-              className="mt-6 inline-block rounded bg-sun px-5 py-2.5 font-display font-medium text-ink transition-opacity hover:opacity-90"
+              className="mt-6 inline-block rounded bg-sun px-5 py-2.5 font-display font-medium text-ink transition-colors hover:bg-sun-hover"
             >
               Ir al calculador
             </Link>
@@ -179,7 +179,7 @@ function SinDatos({
 
         <Link
           href="/"
-          className="mt-8 inline-block rounded bg-sun px-5 py-2.5 font-display font-medium text-ink transition-opacity hover:opacity-90"
+          className="mt-8 inline-block rounded bg-sun px-5 py-2.5 font-display font-medium text-ink transition-colors hover:bg-sun-hover"
         >
           Ir al calculador
         </Link>

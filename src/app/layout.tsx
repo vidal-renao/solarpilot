@@ -24,9 +24,17 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://solarpilot-psi.vercel.app"),
   title: "SolarPilot — preestudio solar",
   description:
-    "Calcula cuantos paneles caben, cuanto producen y cuanto ahorran. Con la procedencia de cada dato y la confianza que merece.",
+    "Calcula cuántos paneles caben, cuánto producen y cuánto ahorran. Con la procedencia de cada dato y la confianza que merece.",
+  openGraph: {
+    type: "website",
+    locale: "es_ES",
+    siteName: "SolarPilot",
+  },
+  // Tarjeta grande: la imagen es la mitad del mensaje cuando se comparte.
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

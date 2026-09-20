@@ -89,7 +89,7 @@ export function StudyForm() {
           <button
             type="submit"
             disabled={pending}
-            className="h-fit self-end rounded bg-sun px-6 py-2.5 font-display font-medium text-ink transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="h-fit self-end rounded bg-sun px-6 py-2.5 font-display font-medium text-ink transition-colors hover:bg-sun-hover disabled:opacity-50"
           >
             {pending ? "Calculando…" : "Calcular"}
           </button>
@@ -251,6 +251,7 @@ export function StudyForm() {
             study={state.study}
             roof={state.roof}
             addressPrecise={state.addressPrecise}
+            comparison={state.comparison}
           />
           <LeadCapture
             studyFields={{

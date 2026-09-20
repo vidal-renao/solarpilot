@@ -1,9 +1,18 @@
 "use server";
 
+import { headers } from "next/headers";
 import { z } from "zod";
+
+import { clientKey, consume, retryAfterSeconds } from "@/lib/rate-limit";
 
 import { captureLead, moveLead } from "@/lib/db/leads";
 import type { LeadState } from "@/lib/db/schema";
+import {
+  compareScenarios,
+  summarise,
+  type ScenarioSummary,
+  type ScenarioVerdict,
+} from "@/lib/solar/compare";
 import { buildStudy } from "@/lib/solar/engine";
 import { geocodeAddressCached, GeocodeError } from "@/lib/solar/geocode";
 import { fetchProductionCached, PvgisError } from "@/lib/solar/pvgis";
@@ -29,8 +38,20 @@ const studySchema = z.object({
 
 type StudyParams = z.infer<typeof studySchema>;
 
+export interface ScenarioComparison {
+  sinBateria: ScenarioSummary;
+  conBateria: ScenarioSummary;
+  verdict: ScenarioVerdict;
+}
+
 export type StudyResponse =
-  | { ok: true; study: PreliminaryStudy; roof: RoofInsight; addressPrecise: boolean }
+  | {
+      ok: true;
+      study: PreliminaryStudy;
+      roof: RoofInsight;
+      addressPrecise: boolean;
+      comparison: ScenarioComparison;
+    }
   | { ok: false; error: string; field?: string };
 
 /** Lee del formulario los campos que definen un preestudio. */
@@ -104,26 +125,70 @@ async function computeStudy(data: StudyParams): Promise<StudyResponse> {
     throw error;
   }
 
-  const input: StudyInput = {
+  const conBateria = (withBattery: boolean): StudyInput => ({
     location: located,
     consumption: { annualKWh: data.annualKWh, source: data.consumptionSource },
     tariff: { importPricePerKWh: data.importPrice, exportPricePerKWh: data.exportPrice },
     geometry,
     usableRoofAreaM2: roof.usableAreaM2,
-    withBattery: data.withBattery,
+    withBattery,
     isResidential: data.clientType === "particular",
     // La deduccion del IRPF exige vivienda habitual y certificados. Sin que
     // conste, se muestra como potencial en lugar de descontarse del retorno.
     meetsIrpfConditions: data.clientType === "particular" && data.habitualResidence,
     annualIbiEUR: data.annualIbiEUR,
-  };
+  });
+
+  const study = buildStudy(conBateria(data.withBattery), production);
+
+  // El otro escenario se calcula tambien: comparten geocodificacion y
+  // radiacion, que es lo caro, asi que el coste de tenerlo es casi nulo y
+  // ahorra al cliente rehacer el calculo para comparar.
+  const alternativo = buildStudy(conBateria(!data.withBattery), production);
+
+  const sin = data.withBattery ? summarise(alternativo) : summarise(study);
+  const con = data.withBattery ? summarise(study) : summarise(alternativo);
 
   return {
     ok: true,
-    study: buildStudy(input, production),
+    study,
     roof,
     addressPrecise: located.isPreciseEnough,
+    comparison: { sinBateria: sin, conBateria: con, verdict: compareScenarios(sin, con) },
   };
+}
+
+/*
+ * Cuotas.
+ *
+ * Calcular cuesta dos llamadas externas, asi que el limite es generoso pero
+ * existe: da margen para ajustar la tarifa y recalcular varias veces, y corta
+ * en seco a un bot. Guardar es mas caro todavia —recalcula y escribe en la
+ * base— y nadie legitimo guarda diez preestudios en un cuarto de hora.
+ */
+const CUOTA_CALCULO = { limit: 12, windowMs: 60_000 };
+const CUOTA_GUARDADO = { limit: 5, windowMs: 15 * 60_000 };
+
+/**
+ * Comprueba la cuota de quien pide.
+ *
+ * Devuelve el mensaje ya redactado, porque un limite que dice "429" no ayuda
+ * a nadie: hay que decir cuanto falta y por que.
+ */
+async function dentroDeCuota(
+  rule: { limit: number; windowMs: number },
+  accion: string,
+): Promise<string | null> {
+  const key = clientKey(await headers());
+  const resultado = consume(`${accion}:${key}`, rule);
+  if (resultado.allowed) return null;
+
+  const segundos = retryAfterSeconds(resultado.retryAfterMs);
+  return (
+    `Has hecho muchas peticiones seguidas. Espera ${segundos} segundo${segundos === 1 ? "" : "s"} ` +
+    "y vuelve a intentarlo. El limite existe porque cada calculo consulta servicios publicos " +
+    "que tienen su propia cuota."
+  );
 }
 
 function firstIssue(error: z.ZodError): { error: string; field?: string } {
@@ -138,6 +203,9 @@ export async function createStudy(
   _previous: StudyResponse | null,
   formData: FormData,
 ): Promise<StudyResponse> {
+  const limitado = await dentroDeCuota(CUOTA_CALCULO, "calculo");
+  if (limitado) return { ok: false, error: limitado };
+
   const parsed = studySchema.safeParse(readStudyFields(formData));
   if (!parsed.success) return { ok: false, ...firstIssue(parsed.error) };
   return computeStudy(parsed.data);
@@ -171,6 +239,9 @@ export async function captureStudy(
   _previous: CaptureResponse | null,
   formData: FormData,
 ): Promise<CaptureResponse> {
+  const limitado = await dentroDeCuota(CUOTA_GUARDADO, "guardado");
+  if (limitado) return { ok: false, error: limitado };
+
   const parsed = captureSchema.safeParse({
     ...readStudyFields(formData),
     name: formData.get("name"),

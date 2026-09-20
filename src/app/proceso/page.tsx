@@ -71,7 +71,7 @@ export default function Proceso() {
 
           <Link
             href="/"
-            className="mt-8 inline-block rounded bg-sun px-5 py-2.5 font-display font-medium text-ink transition-opacity hover:opacity-90"
+            className="mt-8 inline-block rounded bg-sun px-5 py-2.5 font-display font-medium text-ink transition-colors hover:bg-sun-hover"
           >
             Calcular mi preestudio
           </Link>

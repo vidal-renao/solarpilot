@@ -17,7 +17,8 @@
     "db:migrate": "drizzle-kit migrate",
     "capture": "tsx scripts/capture.ts",
     "capture:demo": "tsx scripts/capture-demo.ts",
-    "verify": "npm run typecheck && npm run lint && npm test && npm run build"
+    "verify": "npm run typecheck && npm run lint && npm test && npm run build",
+    "a11y": "tsx scripts/a11y.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.38.3",
@@ -28,6 +29,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@electric-sql/pglite": "^0.5.8",
     "@electric-sql/pglite-socket": "^0.2.11",
     "@tailwindcss/postcss": "^4.0.0",

@@ -88,7 +88,7 @@ Un portfolio que no distingue esto no vale nada.
 |---|---|
 | Radiación y producción | **Real.** PVGIS v5.2, verificado contra el servicio en vivo |
 | Geocodificación | **Real.** Nominatim (OpenStreetMap) |
-| Motor de cálculo | **Real.** Dimensionado, balance, economía e incentivos, con 116 pruebas |
+| Motor de cálculo | **Real.** Dimensionado, balance, economía e incentivos, con 137 pruebas |
 | Base de datos | **Real.** Postgres en Supabase, con migraciones versionadas |
 | Precios de instalación | **Ficticios.** Catálogo de demostración, tramos plausibles |
 | Datos de cubierta | **Apagado.** Google Solar está implementado pero sin clave |
@@ -153,12 +153,13 @@ El sembrado llama a PVGIS y a Nominatim de verdad, así que tarda unos segundos 
 | Script | Qué hace |
 |---|---|
 | `npm run dev` | Servidor de desarrollo |
-| `npm test` | 116 pruebas |
+| `npm test` | 137 pruebas |
 | `npm run typecheck` | TypeScript en modo estricto |
 | `npm run lint` | ESLint |
 | `npm run build` | Compilación de producción |
 | `npm run db:generate` | Genera migración tras cambiar el esquema |
 | `npm run capture:demo` | Regenera las capturas del README |
+| `npm run a11y` | Audita accesibilidad con axe, en los dos temas |
 | `npm run verify` | Typecheck, lint, pruebas y compilación. La puerta antes de empujar |
 
 ### Las capturas se generan solas
@@ -187,7 +188,7 @@ Un proyecto honesto dice dónde termina.
 
 **No hay incentivos.** Las bonificaciones municipales sobre impuestos locales y las deducciones fiscales cambian el retorno de forma material y dependen del municipio. Modelarlas bien es un paquete normativo por territorio con vigencia y fuente citada, no una constante.
 
-**La acción de servidor no tiene limitación de peticiones.** En un despliegue público hay que ponerla antes de nada: el cálculo consume cuota de servicios de terceros.
+**La limitación de peticiones vive en memoria del proceso.** Frena el abuso casual, que es el que se ve aquí. Con varias instancias cada una lleva su cuenta, así que el tope real se multiplica por el número de instancias activas; frenar a alguien decidido exige almacenamiento compartido, y eso es Redis.
 
 **El cache vive en memoria del proceso.** Con varias instancias cada una tiene la suya. Con tráfico real esto va a Redis.
 
@@ -201,3 +202,13 @@ Un proyecto honesto dice dónde termina.
 
 **Vidal Renao Lopelo** · Basilea, Suiza
 [github.com/vidal-renao](https://github.com/vidal-renao)
+
+---
+
+## Accesibilidad
+
+`npm run a11y` pasa axe sobre las cuatro pantallas **en los dos temas**, porque el contraste depende del tema y auditar solo uno deja la mitad sin mirar. Hoy: cero infracciones de WCAG 2.1 AA.
+
+Vale la pena contar cómo se llegó ahí, porque el método importa. Primero medí el contraste a mano y di los tokens por buenos. axe encontró seis infracciones que la medición manual no veía, y el motivo era el mismo en todas: **yo medía el texto contra el fondo de página, pero ese texto vive sobre tarjetas y cabeceras**, que tienen otra luminancia. Medir contra la superficie más favorable no es medir.
+
+La segunda, más sutil: el botón principal usaba `hover:opacity-90`, y aclarar el ámbar con opacidad lo dejaba en 4,00 sobre el texto. El estado hover tiene ahora color propio en lugar de transparencia.

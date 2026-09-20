@@ -11,11 +11,14 @@
   /* Texto */
   --color-snow: #f4f6fb;
   --color-mist: #a8b2cc;
-  --color-mist-dim: #78849f;
+  --color-mist-dim: #828fab;
 
   /* Unico acento. Reservado a valores de energia medidos. */
   --color-sun: #f5b544;
   --color-sun-dim: #8a6524;
+  /* Estado hover del boton principal. Aclararlo con opacidad rompia el
+     contraste en tema claro, asi que tiene color propio. */
+  --color-sun-hover: #f7c163;
 
   --font-display: var(--font-space-grotesk), system-ui, sans-serif;
   --font-sans: var(--font-plex-sans), system-ui, sans-serif;
@@ -52,9 +55,10 @@
     --color-line-bright: #aeb7ca;
     --color-snow: #131a2b;
     --color-mist: #45506b;
-    --color-mist-dim: #656f8c;
+    --color-mist-dim: #5e6884;
     --color-sun: #9a6206;
     --color-sun-dim: #d8b87e;
+    --color-sun-hover: #7d4f05;
   }
 }
 
@@ -67,9 +71,10 @@
   --color-line-bright: #aeb7ca;
   --color-snow: #131a2b;
   --color-mist: #45506b;
-  --color-mist-dim: #656f8c;
+  --color-mist-dim: #5e6884;
   --color-sun: #9a6206;
   --color-sun-dim: #d8b87e;
+  --color-sun-hover: #7d4f05;
 }
 
 :root[data-theme="dark"] {
@@ -161,7 +166,7 @@
   --color-line-bright: #b9c2d6;
   --color-snow: #131a2b;
   --color-mist: #45506b;
-  --color-mist-dim: #656f8c;
+  --color-mist-dim: #5e6884;
   --color-sun: #9a6206;
   --color-sun-dim: #e0b978;
 

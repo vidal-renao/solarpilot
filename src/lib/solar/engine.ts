@@ -294,6 +294,7 @@ export function computeEconomics(
   return {
     investmentEUR: round(investmentEUR),
     netInvestmentEUR: round(netInvestmentEUR),
+    batteryKWh: round(batteryKWh, 1),
     firstYearSavingsEUR: savings.totalEUR,
     selfConsumptionSavingsEUR: savings.selfConsumptionSavingsEUR,
     compensationEUR: savings.compensationEUR,
