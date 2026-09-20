@@ -16,7 +16,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "capture": "tsx scripts/capture.ts",
-    "capture:demo": "tsx scripts/capture-demo.ts"
+    "capture:demo": "tsx scripts/capture-demo.ts",
+    "verify": "npm run typecheck && npm run lint && npm test && npm run build"
   },
   "dependencies": {
     "drizzle-orm": "^0.38.3",

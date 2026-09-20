@@ -1,5 +1,4 @@
-console.log("
-Capturas generadas en docs/.");/**
+/**
  * Capturas para el README.
  *
  * Se generan con el navegador, no a mano: asi se pueden regenerar cuando

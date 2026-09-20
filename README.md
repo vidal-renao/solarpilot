@@ -159,6 +159,7 @@ El sembrado llama a PVGIS y a Nominatim de verdad, así que tarda unos segundos 
 | `npm run build` | Compilación de producción |
 | `npm run db:generate` | Genera migración tras cambiar el esquema |
 | `npm run capture:demo` | Regenera las capturas del README |
+| `npm run verify` | Typecheck, lint, pruebas y compilación. La puerta antes de empujar |
 
 ### Las capturas se generan solas
 
