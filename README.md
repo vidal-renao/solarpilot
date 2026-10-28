@@ -1,5 +1,21 @@
 # SolarPilot
 
+## English overview
+
+Solar pre-assessment demo exploring panel capacity, production estimates, savings and payback. Each result carries its data source and confidence level; the overall confidence follows the weakest input.
+
+**Demo scope:** the installer and price catalogue are fictional. Solar radiation data comes from PVGIS, the European Commission Joint Research Centre service. Outputs illustrate a preliminary assessment workflow.
+
+[Open demo](https://solarpilot-psi.vercel.app) · [Developer portfolio](https://vidal-pro-portfolio.vercel.app/en)
+
+**Stack:** Next.js, TypeScript, PostgreSQL and Drizzle.
+
+The detailed implementation notes below are in Spanish.
+
+---
+
+## Documentación en español
+
 Preestudio solar para una instaladora fotovoltaica española: una dirección y un consumo entran, y salen cuántos paneles caben, cuánto producen, cuánto ahorran y en cuánto tiempo se pagan.
 
 Lo que lo separa de cualquier otro calculador solar es que **también dice cuánto se fía de sus propios números**. Cada cifra arrastra de dónde sale, y la confianza global es la del eslabón más débil: si la radiación viene de una fuente oficial pero el consumo lo has sacado de una factura, el preestudio sale marcado como confianza **baja**, no alta.
